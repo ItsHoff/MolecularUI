@@ -1,0 +1,2 @@
+!1
+machine.AddCircuit(type='AND', name = '%Name%', $factors = %Factors%$, $%INPUTS%$, $pushed = %Pushed%$)

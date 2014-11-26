@@ -1,0 +1,9 @@
+!1
+
+# Setup 4D linear interpolation
+%Name% = machine.AddCircuit(type = 'i4Dlin', name = '%Name%', $components = %Components%$, $%INPUTS%$, $pushed = %Pushed%$)
+£%Name%.BiasStep = $%BiasStep%$£
+£%Name%.StartingV = $%StartingV%$£
+£%Name%.ConfigureVASP($pbc = [%PBC%]$)£
+£%Name%.ReadVASPData($'%VASP Data%'$)£
+

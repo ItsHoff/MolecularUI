@@ -1,0 +1,2 @@
+!1
+machine.AddCircuit(type='SKLP', name = '%Name%', $gain = %Gain%$, $Q = %Q%$, $fc = %FCut%$, $%INPUTS%$, $pushed = %Pushed%$)

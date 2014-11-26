@@ -1,0 +1,2 @@
+!1
+machine.AddCircuit(type='STM', name = '%Name%', $WorkFunction = %WorkFunction%$, $WaveFunctionOverlap = %WaveFunctionOverlap%$, $%INPUTS%$, $pushed = %Pushed%$)

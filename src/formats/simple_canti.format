@@ -1,0 +1,2 @@
+!1
+machine.AddCircuit(type='Cantilever', name='%Name%', $startingz = %StartingZ%$, $Q = %Q%$, $k=%k%$, $f0 = %f0%$, $%INPUTS%$, $pushed = %Pushed%$)

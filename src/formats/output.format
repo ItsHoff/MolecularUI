@@ -1,0 +1,10 @@
+!1
+
+# Setup output
+%Name% = machine.AddCircuit(type='output', name='%Name%', $file = '%File%'$, $dump = %Dump%$, $%INPUTS%$, $pushed = %Pushed%$)
+
+!3
+
+# Select registered channels
+£%Name%.Register($%Register%$)£
+

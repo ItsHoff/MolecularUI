@@ -1,0 +1,2 @@
+!1
+machine.AddCircuit(type='JKFlipFlop', name = '%Name%', $%INPUTS%$, $pushed = %Pushed%$)

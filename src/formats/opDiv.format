@@ -1,0 +1,2 @@
+!1
+machine.AddCircuit(type='opDiv', name='%Name%', $%INPUTS%$, $pushed = %Pushed%$)
