@@ -1,2 +1,0 @@
-!1
-machine.AddCircuit(type='XOR', name = '%Name%', $factors = %Factors%$, $%INPUTS%$, $pushed = %Pushed%$)

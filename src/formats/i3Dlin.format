@@ -1,7 +1,0 @@
-!1
-
-# Setup 3D linear interpolation
-%Name% = machine.AddCircuit(type = 'i3Dlin', name = '%Name%', $components = %Components%$, $%INPUTS%$, $pushed = %Pushed%$)
-£%Name%.Configure($steps = [%Steps%]$, $npoints = [%Npoints%]$, $pbc = [%PBC%]$, $ForceMultiplier = %Force Multiplier%$)£
-£%Name%.ReadData($'%Data%'$)£
-

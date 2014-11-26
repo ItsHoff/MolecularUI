@@ -1,2 +1,0 @@
-!1
-machine.AddCircuit(type='avg', name = '%Name%', $time = %Time%$, $moving = %Moving%$, $%INPUTS%$, $pushed = %Pushed%$)

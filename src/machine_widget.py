@@ -20,8 +20,6 @@ class MachineWidget(QtGui.QGraphicsScene):
         super(MachineWidget, self).__init__(parent)
         self.tree_widget = tree_widget
         self.circuits = []
-        self.connections = []
-        self.new_connection = None
         self.selection_box = None
         self.saved_selections = [None]*10
         self.initWidget()
@@ -61,22 +59,20 @@ class MachineWidget(QtGui.QGraphicsScene):
         """Add some circuits to the scene on startup."""
         pass
 
-    def addCircuit(self, name, x, y):
+    def addCircuit(self, x, y):
         """Add a circuit with corresponding name to the scene
         and update the scene.
         """
-        circuit = UICircuit(x-x%100, y-y%100, circuits.circuits[name])
-        circuit.addIO()
+        circuit = UICircuit(x-x%100, y-y%100)
         self.circuits.append(circuit)
         self.addItem(circuit)
-        self.resolveNameConflicts(circuit)
         self.updateSceneRect()
         self.update()
 
     def addDroppedCircuit(self, dropped, pos):
         """Add the dropped circuit to the scene after a dropEvent."""
         name = str(dropped.text(0))
-        self.addCircuit(name, pos.x(), pos.y())
+        self.addCircuit(pos.x(), pos.y())
 
     def addClickedCircuit(self, pos):
         """Add circuit selected from the main_window tree_widget
@@ -88,7 +84,7 @@ class MachineWidget(QtGui.QGraphicsScene):
         name = str(item.text(0))
         if item.parent():
             self.addToRecentlyUsed(item)
-            self.addCircuit(name, pos.x(), pos.y())
+            self.addCircuit(pos.x(), pos.y())
 
     def addLoadedCircuit(self, save_state):
         """Add circuit loaded from save_state into the scene."""
@@ -98,85 +94,6 @@ class MachineWidget(QtGui.QGraphicsScene):
         circuit.loadSaveState(save_state)
         circuit.setSelected(True)
         self.resolveNameConflicts(circuit)
-
-    def resolveNameConflicts(self, check_circuit):
-        """Make sure that the name of the circuit doesn't conflict
-        with any other circuit."""
-        conflict_found = True
-        name = check_circuit.name
-        number = 0
-        while conflict_found:
-            if number != 0:
-                name = check_circuit.name + str(number)
-            conflict_found = False
-            for circuit in self.circuits:
-                if circuit.name == name and circuit is not check_circuit:
-                    conflict_found = True
-                    number += 1
-                    continue
-        check_circuit.setName(name)
-
-    def createNewConnection(self, origin, mouse_pos):
-        """Try to create a new connection starting from mouse_pos.
-        Throw a ValueError if input under mouse is allready connected.
-        Should be called by the input or output at the start of the
-        connection.
-        """
-        status_bar = self.parent().window().statusBar()
-        try:
-            self.new_connection = UIConnection(origin, mouse_pos)
-        except ValueError as e:
-            status_bar.showMessage(e.message, 3000)
-            return
-        self.views()[0].setMouseTracking(True)
-        self.addItem(self.new_connection)
-
-    def addConnection(self):
-        """Add a new valid connection. Should be called
-        by the input or output at the end of connection.
-        """
-        status_bar = self.parent().window().statusBar()
-        input_ = self.new_connection.input_
-        output = self.new_connection.output
-        message = "Connected %s.%s and %s.%s" % (output.circuit.name,
-                  output.name, input_.circuit.name, input_.name)
-        self.connections.append(self.new_connection)
-        self.new_connection = None
-        self.views()[0].setMouseTracking(False)
-        status_bar.showMessage(message, 4000)
-
-    def addLoadedConnection(self, save_state):
-        """Add connection loaded from save_state into the scene."""
-        output = save_state.output
-        connection = UIConnection(output.loaded_item, output.loaded_item.pos())
-        connection.loadSaveState(save_state)
-        self.connections.append(connection)
-        self.addItem(connection)
-
-    def deleteNewConnection(self):
-        """Delete unconnected new_connextion."""
-        if self.new_connection is not None:
-            status_bar = self.parent().window().statusBar()
-            self.removeItem(self.new_connection)
-            self.new_connection = None
-            self.views()[0].setMouseTracking(False)
-            status_bar.showMessage("Destroyed connection", 2000)
-
-    def updateConnections(self):
-        """Update paths for all required connections.
-        Needed after some move events."""
-        for connection in self.connections:
-            connection.updatePath()
-
-    def hasIOatPos(self, pos):
-        """Check if there's input or output at position pos
-        and return True if there is and False otherwise.
-        """
-        items = self.items(pos)
-        for item in items:
-            if isinstance(item, UIIO):
-                return True
-        return False
 
     def findMatchingCircuit(self, save_state):
         """Return the circuit with the matching save_state."""
@@ -190,10 +107,6 @@ class MachineWidget(QtGui.QGraphicsScene):
         """
         clear_all = QtGui.QAction("Delete All", menu)
         self.connect(clear_all, QtCore.SIGNAL("triggered()"), self.deleteAll)
-
-        clear_connections = QtGui.QAction("Delete All Connections", menu)
-        self.connect(clear_connections, QtCore.SIGNAL("triggered()"),
-                     self.removeConnections)
 
         save_selected = QtGui.QAction("Save Selected", menu)
         self.connect(save_selected, QtCore.SIGNAL("triggered()"),
@@ -236,42 +149,6 @@ class MachineWidget(QtGui.QGraphicsScene):
             status_bar.showMessage("Cleared all", 3000)
         self.update()
 
-    def removeConnections(self):
-        """Clear all connections from the scene."""
-        value = self.showMessageBox("Delete All Connections",
-                                    "Do you want to delete all connections?")
-        if value == QtGui.QMessageBox.Yes:
-            status_bar = self.parent().window().statusBar()
-            for connection in self.connections:
-                self.removeItem(connection)
-            self.connections = []
-            status_bar.showMessage("Removed all connections", 3000)
-            self.update()
-
-    def removeConnectionsFrom(self, IO):
-        """Remove all connections from input or output
-        given as parameter.
-        """
-        status_bar = self.parent().window().statusBar()
-        for connection in self.connections[:]:
-            if connection.input_ == IO or connection.output == IO:
-                self.connections.remove(connection)
-                self.removeItem(connection)
-        status_bar.showMessage("Removed all connections from %s.%s"%
-                (IO.circuit.name, IO.name), 3000)
-        self.update()
-
-    def removeConnection(self, connection):
-        """Remove the specified connection from the scene."""
-        status_bar = self.parent().window().statusBar()
-        input_ = connection.input_
-        output = connection.output
-        message = "Removed connection from %s.%s to %s.%s" % (input_.circuit.name,
-                input_.name, output.circuit.name, output.name)
-        self.connections.remove(connection)
-        self.removeItem(connection)
-        status_bar.showMessage(message, 3000)
-
     def removeCircuit(self, circuit):
         """Remove the specified circuit from the scene.
         Also remove all the circuits inputs, outputs and connections
@@ -285,16 +162,6 @@ class MachineWidget(QtGui.QGraphicsScene):
         status_bar.showMessage("Removed %s"%circuit.name, 3000)
         self.updateSceneRect()
         self.update()
-
-    def selectedConnections(self):
-        """Return list of connections whose both ends are selected."""
-        selected_items = self.selectedItems()
-        selected_connections = []
-        for connection in self.connections:
-            if (connection.input_.circuit in selected_items and
-                    connection.output.circuit in selected_items):
-                selected_connections.append(connection)
-        return selected_connections
 
     def moveSelected(self, amount):
         """Move all the selected items by amount."""
@@ -353,18 +220,14 @@ class MachineWidget(QtGui.QGraphicsScene):
         solid_pen = QtGui.QPen(QtGui.QColor(0, 0, 0), 4, QtCore.Qt.SolidLine)
         faint_pen = QtGui.QPen(QtGui.QColor(150, 150, 150), 1, QtCore.Qt.SolidLine)
         qp.setPen(faint_pen)
-        for x in range(int(tl.x() - tl.x() % 100),
-                       int(br.x()), 100):
-            for y in range(int(tl.y() - tl.y() % 100),
-                           int(br.y()), 100):
+        for x in range(int(tl.x() - tl.x() % 100), int(br.x()), 100):
+            for y in range(int(tl.y() - tl.y() % 100), int(br.y()), 100):
                 qp.drawLine(int(tl.x()), int(y), int(br.x()), int(y))
                 qp.drawLine(int(x), int(tl.y()), int(x), int(br.y()))
         # Draw thicklines to the middle of the scene
         qp.setPen(solid_pen)
-        qp.drawLine(0, int(tl.y()),
-                    0, int(br.y()))
-        qp.drawLine(int(tl.x()), 0,
-                    int(br.x()), 0)
+        qp.drawLine(0, int(tl.y()), 0, int(br.y()))
+        qp.drawLine(int(tl.x()), 0, int(br.x()), 0)
 
     def dragEnterEvent(self, event):
         """Accept event for drag & drop to work."""
@@ -415,14 +278,6 @@ class MachineWidget(QtGui.QGraphicsScene):
             self.clearSelection()
             self.selection_box = SelectionBox(event.scenePos(), None, self)
             self.update()
-        # If user was trying to create a new connection
-        # and clicked something other than input or output
-        # destroy the connection. Also non left clicks
-        # destroy the connection.
-        elif (self.new_connection is not None and
-             (not self.hasIOatPos(event.scenePos()) or
-              event.button() != QtCore.Qt.LeftButton)):
-            self.deleteNewConnection()
         elif self.itemAt(event.scenePos()) is not None:
             super(MachineWidget, self).mousePressEvent(event)
 
@@ -432,10 +287,7 @@ class MachineWidget(QtGui.QGraphicsScene):
         update the selection.
         """
         super(MachineWidget, self).mouseMoveEvent(event)
-        if self.new_connection is not None:
-            self.new_connection.updateMousePos(event.scenePos())
-            self.update()
-        elif self.selection_box is not None:
+        if self.selection_box is not None:
             self.views()[0].autoScroll(event.scenePos())
             self.selection_box.setCorner(event.scenePos())
             selection_area = self.selection_box.selectionArea()

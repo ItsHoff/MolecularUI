@@ -1,2 +1,0 @@
-!1
-machine.AddCircuit(type='Equal', name = '%Name%', $%INPUTS%$, $pushed = %Pushed%$)

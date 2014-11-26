@@ -1,6 +1,0 @@
-!1
-
-# Setup 1D linear interpolation
-%Name% = machine.AddCircuit(type='i1Dlin', name = '%Name%', $comp = %Components%$, $step = %Step%$, $pbc = %PBC%$, $%INPUTS%$, $pushed = %Pushed%$)
-£%Name%.SetData($[%Data%]$)£
-

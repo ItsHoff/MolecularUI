@@ -1,8 +1,0 @@
-!1
-
-# Setup advanced cantilever
-%Name% = machine.AddCircuit(type='AdvancedCantilever',name='%Name%', $NumberOfModesV=%NumberOfModesV%$, $NumberOfModesL=%NumberOfModesL%$, $%INPUTS%$, $pushed=%Pushed%$)
-£%Name%.StartingPos($%StartingPos%$)£
-£$%Modes%$£
-%Name%.CantileverReady()
-

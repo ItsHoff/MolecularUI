@@ -1,2 +1,0 @@
-!1
-machine.AddCircuit(type='Machine', name = '%Name%', assembly = dPFD, $fcut=%Fcut%$, $gain = %Gain%$, $%INPUTS%$, $pushed = %Pushed%$)

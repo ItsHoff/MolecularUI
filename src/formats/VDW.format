@@ -1,2 +1,0 @@
-!1
-machine.AddCircuit(type='VDW', name = '%Name%', $alpha = %Alpha%$, $hamaker = %Hamaker%$, $radius = %Radius%$, $offset = %Offset%$, $%INPUTS%$, $pushed = %Pushed%$)

@@ -1,2 +1,0 @@
-!1
-machine.AddCircuit(type='waver', name='%Name%', $%INPUTS%$, $pushed = %Pushed%$)
