@@ -30,6 +30,7 @@ class MachineWidget(QtGui.QGraphicsScene):
         self.circuits = []
         self.selection_box = None
         self.drag_border = None
+        self.painting_status = None
         self.saved_selections = [None]*10
         self.initWidget()
 
@@ -264,7 +265,7 @@ class MachineWidget(QtGui.QGraphicsScene):
         qp.drawLine(int(tl.x()), 0, int(br.x()), 0)
 
     def drawSurface(self, qp):
-        qp.setBrush(QtGui.QColor(100, 100, 100))
+        qp.setBrush(QtGui.QColor(48, 48, 122))
         qp.drawRect(self.surface)
         # pen = QtGui.QPen(QtGui.QColor(0, 0, 0))
         # pen.setWidth(1)
@@ -332,14 +333,14 @@ class MachineWidget(QtGui.QGraphicsScene):
             event.accept()
             self.addClickedCircuit(event.scenePos())
         elif (event.button() == QtCore.Qt.LeftButton and
-              # self.itemAt(event.scenePos()) is None  and
+              not self.surface.contains(event.scenePos()) and
               not event.modifiers() & QtCore.Qt.ControlModifier):
             self.drag_border = self.checkBorder(event.scenePos())
             # self.clearSelection()
             # self.selection_box = SelectionBox(event.scenePos(), None, self)
             # self.update()
-        # elif self.itemAt(event.scenePos()) is not None:
-            # super(MachineWidget, self).mousePressEvent(event)
+        elif self.itemAt(event.scenePos()) is not None:
+            super(MachineWidget, self).mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
         """If user is trying to create a connection update connections

@@ -8,13 +8,18 @@ from PyQt4 import QtGui, QtCore
 
 XSIZE = 25
 YSIZE = 25
-LEFT_RECT = QtCore.QRectF(0, (YSIZE - XSIZE/2)/2,
-                               XSIZE/2, XSIZE/2)
-RIGHT_RECT = QtCore.QRectF(LEFT_RECT)
-RIGHT_RECT.moveTo(LEFT_RECT.x() + XSIZE/2, LEFT_RECT.y())
 
 class UICircuit(QtGui.QGraphicsItem):
     """Graphics item that represents the circuits of the machine."""
+
+    LEFT_RECT = QtCore.QRectF(0, (YSIZE - XSIZE/2)/2,
+                              XSIZE/2, XSIZE/2)
+    RIGHT_RECT = QtCore.QRectF(LEFT_RECT)
+    RIGHT_RECT.moveTo(LEFT_RECT.x() + XSIZE/2, LEFT_RECT.y())
+    NORMAL = 0
+    VACANT = 1
+    NORMAL_COLOR = QtGui.QColor(255, 0, 0)
+    VACANT_COLOR = QtGui.QColor(43, 143, 141)
 
     def __init__(self, x, y):
         """Create a circuit defined by the circuit_info and
@@ -24,13 +29,10 @@ class UICircuit(QtGui.QGraphicsItem):
         self.setX(x)
         self.setY(y)
         self.setFlag(self.ItemIsSelectable, True)
-        # self.setFlag(self.ItemIsMovable, True)
-        # self.setFlag(self.ItemSendsScenePositionChanges, True)
         self.xsize = XSIZE
         self.ysize = YSIZE
-        self.left_rect = LEFT_RECT
-        self.right_rect = RIGHT_RECT
-        self.circuit_info = {}
+        self.right_status = self.NORMAL
+        self.left_status = self.NORMAL
         self.dragged = False
         self.highlighted = False
         self.save_state = SaveCircuit(self)
@@ -78,7 +80,6 @@ class UICircuit(QtGui.QGraphicsItem):
         self.save_state = save_state
         self.setX(save_state.x)
         self.setY(save_state.y)
-        self.circuit_info = save_state.circuit_info
 
     def boundingRect(self):
         """Return the bounding rectangle of the circuit.
@@ -89,24 +90,24 @@ class UICircuit(QtGui.QGraphicsItem):
     def paint(self, painter, options, widget):
         """Paint the circuit. Called automatically by the scene."""
         if not self.scene().surface.contains(self.boundingRect().translated(self.pos())):
-            self.scene().removeCircuit(self)
             return
-        # if self.highlighted:
-            # self.setZValue(2)
-            # painter.setBrush(QtGui.QColor(188, 244, 184))
-        # elif self.isSelected():
-            # self.setZValue(1)
-            # painter.setBrush(QtGui.QColor(165, 198, 255))
-        # else:
-        self.setZValue(0)
-        painter.setBrush(QtGui.QColor(100, 100, 100))
+        # painter.setBrush(QtGui.QColor(100, 100, 100))
         pen = QtGui.QPen(QtGui.QColor(0, 0, 0))
         pen.setWidth(1)
         painter.setPen(pen)
         painter.drawRect(0, 0, self.xsize, self.ysize)
-        painter.setBrush(QtGui.QColor(255, 0, 0))
-        painter.drawEllipse(self.left_rect)
-        painter.drawEllipse(self.right_rect)
+        if self.left_status == self.VACANT:
+            painter.setBrush(self.VACANT_COLOR)
+            painter.drawEllipse(self.LEFT_RECT)
+        else:
+            painter.setBrush(self.NORMAL_COLOR)
+            painter.drawEllipse(self.LEFT_RECT)
+        if self.right_status == self.VACANT:
+            painter.setBrush(self.VACANT_COLOR)
+            painter.drawEllipse(self.RIGHT_RECT)
+        else:
+            painter.setBrush(self.NORMAL_COLOR)
+            painter.drawEllipse(self.RIGHT_RECT)
 
     def mousePressEvent(self, event):
         """If left mouse button is pressed down start dragging
@@ -117,13 +118,34 @@ class UICircuit(QtGui.QGraphicsItem):
             self.toggleSelection()
             self.scene().saveSelection(0)
         elif event.button() == QtCore.Qt.LeftButton:
-            self.dragged = True
+            if event.pos().x() < self.xsize/2:
+                if self.left_status == self.NORMAL:
+                    self.left_status = self.VACANT
+                    self.scene().painting_status = self.VACANT
+                else:
+                    self.left_status = self.NORMAL
+                    self.scene().painting_status = self.NORMAL
+            else:
+                if self.right_status == self.NORMAL:
+                    self.right_status = self.VACANT
+                    self.scene().painting_status = self.VACANT
+                else:
+                    self.right_status = self.NORMAL
+                    self.scene().painting_status = self.NORMAL
+            self.update()
         # super(UICircuit, self).mousePressEvent(event)
+
+    def dragEnterEvent(self, event):
+        print "drag enter"
+
+    def dragMoveEvent(self, event):
+        print "drag move"
 
     def mouseReleaseEvent(self, event):
         """End drag when mouse is released."""
         if event.button() == QtCore.Qt.LeftButton:
             self.dragged = False
+            self.scene().painting_status = None
             self.scene().views()[0].scroll_dir = None
             self.ensureVisible()
             self.scene().updateSceneRect()
@@ -156,6 +178,14 @@ class UICircuit(QtGui.QGraphicsItem):
             self.scene().updateMovingSceneRect()
             self.scene().views()[0].autoScroll(event.scenePos())
             self.scene().update()
+        elif self.scene().painting_status is not None:
+            item_to_paint = self.scene().itemAt(event.scenePos())
+            pos = item_to_paint.mapFromScene(event.scenePos())
+            if pos.x() < item_to_paint.xsize/2:
+                item_to_paint.left_status = item_to_paint.scene().painting_status
+            else:
+                item_to_paint.right_status = item_to_paint.scene().painting_status
+            item_to_paint.update()
         # super(UICircuit, self).mouseMoveEvent(event)
 
     def moveBy(self, amount):
@@ -170,7 +200,6 @@ class SaveCircuit(object):
         pos = circuit.pos()
         self.x = pos.x()
         self.y = pos.y()
-        self.circuit_info = circuit.circuit_info
         self.loaded_item = None                 # Clear this before saving
 
     def update(self, circuit):
