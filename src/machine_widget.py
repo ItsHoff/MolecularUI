@@ -6,11 +6,18 @@ Created on Jun 6, 2014
 
 from PyQt4 import QtGui, QtCore
 
+import ui_circuit
 from ui_circuit import UICircuit
-from ui_IO import UIIO
-from ui_connection import UIConnection
 from selection_box import SelectionBox
-import circuits
+
+TOPB = 1
+TOPRB = 2
+RIGHTB = 3
+BOTTOMRB = 4
+BOTTOMB = 5
+BOTTOMLB = 6
+LEFTB = 7
+TOPLB = 8
 
 
 class MachineWidget(QtGui.QGraphicsScene):
@@ -19,14 +26,17 @@ class MachineWidget(QtGui.QGraphicsScene):
     def __init__(self, tree_widget, parent=None):
         super(MachineWidget, self).__init__(parent)
         self.tree_widget = tree_widget
+        self.surface = QtCore.QRectF(-250, -250, 500, 500)
         self.circuits = []
         self.selection_box = None
+        self.drag_border = None
         self.saved_selections = [None]*10
         self.initWidget()
 
     def initWidget(self):
         """Initialise the UI of the widget."""
         self.addCircuits()
+        self.populateSurface()
         self.updateSceneRect()
         self.update()
 
@@ -34,7 +44,7 @@ class MachineWidget(QtGui.QGraphicsScene):
         """Return a new scene rectangle based on the bounding rectangle
         of all scene items.
         """
-        rect = self.itemsBoundingRect()
+        rect = QtCore.QRectF(self.surface)
         center = rect.center()
         rect.setHeight(rect.height() + 500)
         rect.setWidth(rect.width() + 500)
@@ -55,6 +65,33 @@ class MachineWidget(QtGui.QGraphicsScene):
         new_rect = new_rect.united(old_rect)
         self.setSceneRect(new_rect)
 
+    def populateSurface(self):
+        y = self.surface.top()
+        while y < self.surface.bottom():
+            x = self.surface.left()
+            while x < self.surface.right():
+                self.addCircuit(x, y)
+                x += ui_circuit.XSIZE
+            y += ui_circuit.YSIZE
+
+    def populateVerticalLines(self, xmin, xmax):
+        for x in range(int(xmin), int(xmax) + ui_circuit.XSIZE, ui_circuit.XSIZE):
+            y = self.surface.top()
+            items_at_line = self.items(x, y, ui_circuit.XSIZE, self.surface.bottom() - y)
+            if len(items_at_line) < (self.surface.bottom() - y)/ui_circuit.YSIZE:
+                while y < self.surface.bottom():
+                    self.addCircuit(x, y)
+                    y += ui_circuit.YSIZE
+
+    def populateHorizontalLines(self, ymin, ymax):
+        for y in range(int(ymin), int(ymax) + ui_circuit.YSIZE, ui_circuit.YSIZE):
+            x = self.surface.left()
+            items_at_line = self.items(x, y, self.surface.right() - x, ui_circuit.YSIZE)
+            if len(items_at_line) < (self.surface.right() - x)/ui_circuit.XSIZE:
+                while x < self.surface.right():
+                    self.addCircuit(x, y)
+                    x += ui_circuit.XSIZE
+
     def addCircuits(self):
         """Add some circuits to the scene on startup."""
         pass
@@ -63,15 +100,15 @@ class MachineWidget(QtGui.QGraphicsScene):
         """Add a circuit with corresponding name to the scene
         and update the scene.
         """
-        circuit = UICircuit(x-x%100, y-y%100)
-        self.circuits.append(circuit)
-        self.addItem(circuit)
-        self.updateSceneRect()
-        self.update()
+        if not self.itemAt(x, y):
+            circuit = UICircuit(x-x%ui_circuit.XSIZE, y-y%ui_circuit.YSIZE)
+            self.circuits.append(circuit)
+            self.addItem(circuit)
+            # self.updateSceneRect()
+            # self.update()
 
-    def addDroppedCircuit(self, dropped, pos):
+    def addDroppedCircuit(self, pos):
         """Add the dropped circuit to the scene after a dropEvent."""
-        name = str(dropped.text(0))
         self.addCircuit(pos.x(), pos.y())
 
     def addClickedCircuit(self, pos):
@@ -81,19 +118,17 @@ class MachineWidget(QtGui.QGraphicsScene):
         item = self.tree_widget.currentItem()
         if item is None:
             return
-        name = str(item.text(0))
         if item.parent():
             self.addToRecentlyUsed(item)
             self.addCircuit(pos.x(), pos.y())
 
     def addLoadedCircuit(self, save_state):
         """Add circuit loaded from save_state into the scene."""
-        circuit = UICircuit(0, 0, save_state.circuit_info)
+        circuit = UICircuit(0, 0)
         self.circuits.append(circuit)
         self.addItem(circuit)
         circuit.loadSaveState(save_state)
         circuit.setSelected(True)
-        self.resolveNameConflicts(circuit)
 
     def findMatchingCircuit(self, save_state):
         """Return the circuit with the matching save_state."""
@@ -119,7 +154,6 @@ class MachineWidget(QtGui.QGraphicsScene):
         if self.selectedItems():
             menu.addAction(save_selected)
             menu.addAction(delete_selected)
-        menu.addAction(clear_connections)
         menu.addAction(clear_all)
 
     def showMessageBox(self, title, text):
@@ -155,13 +189,11 @@ class MachineWidget(QtGui.QGraphicsScene):
         from the scene.
         """
         status_bar = self.parent().window().statusBar()
-        for io in circuit.ios:
-            self.removeConnectionsFrom(io)
         self.circuits.remove(circuit)
         self.removeItem(circuit)
-        status_bar.showMessage("Removed %s"%circuit.name, 3000)
-        self.updateSceneRect()
-        self.update()
+        # status_bar.showMessage("Removed circuit", 3000)
+        # self.updateSceneRect()
+        # self.update()
 
     def moveSelected(self, amount):
         """Move all the selected items by amount."""
@@ -212,6 +244,8 @@ class MachineWidget(QtGui.QGraphicsScene):
         qp.setBrush(QtGui.QColor(255, 255, 255))
         qp.drawRect(rect)
         self.drawGrid(qp, rect)
+        # qp.drawRect(self.surface)
+        self.drawSurface(qp)
 
     def drawGrid(self, qp, rect):
         """Draw a grid with a spacing of 100 to the background."""
@@ -228,6 +262,31 @@ class MachineWidget(QtGui.QGraphicsScene):
         qp.setPen(solid_pen)
         qp.drawLine(0, int(tl.y()), 0, int(br.y()))
         qp.drawLine(int(tl.x()), 0, int(br.x()), 0)
+
+    def drawSurface(self, qp):
+        qp.setBrush(QtGui.QColor(100, 100, 100))
+        qp.drawRect(self.surface)
+        # pen = QtGui.QPen(QtGui.QColor(0, 0, 0))
+        # pen.setWidth(1)
+        # qp.setPen(pen)
+        # qp.setBrush(QtGui.QColor(255, 0, 0))
+        # y = self.surface.top()
+        # while y < self.surface.bottom():
+            # x = self.surface.left()
+            # qp.drawLine(x, y, self.surface.right(), y)
+            # while x < self.surface.right():
+                # left_rect = QtCore.QRectF(x, y + (ui_circuit.YSIZE - ui_circuit.XSIZE/2)/2,
+                                          # ui_circuit.XSIZE/2, ui_circuit.XSIZE/2)
+                # right_rect = QtCore.QRectF(left_rect)
+                # right_rect.moveTo(left_rect.x() + ui_circuit.XSIZE/2, left_rect.y())
+                # qp.drawEllipse(left_rect)
+                # qp.drawEllipse(right_rect)
+                # x += ui_circuit.XSIZE
+            # y += ui_circuit.YSIZE
+        # x = self.surface.left()
+        # while x < self.surface.right():
+            # qp.drawLine(x, self.surface.top(), x, self.surface.bottom())
+            # x += ui_circuit.XSIZE
 
     def dragEnterEvent(self, event):
         """Accept event for drag & drop to work."""
@@ -248,7 +307,7 @@ class MachineWidget(QtGui.QGraphicsScene):
         if event.source() is self.tree_widget:
             event.accept()
             dropped_item = event.source().currentItem()
-            self.addDroppedCircuit(dropped_item, event.scenePos())
+            self.addDroppedCircuit(event.scenePos())
             self.addToRecentlyUsed(dropped_item)
 
     def addToRecentlyUsed(self, tree_item):
@@ -273,13 +332,14 @@ class MachineWidget(QtGui.QGraphicsScene):
             event.accept()
             self.addClickedCircuit(event.scenePos())
         elif (event.button() == QtCore.Qt.LeftButton and
-              self.itemAt(event.scenePos()) is None  and
+              # self.itemAt(event.scenePos()) is None  and
               not event.modifiers() & QtCore.Qt.ControlModifier):
-            self.clearSelection()
-            self.selection_box = SelectionBox(event.scenePos(), None, self)
-            self.update()
-        elif self.itemAt(event.scenePos()) is not None:
-            super(MachineWidget, self).mousePressEvent(event)
+            self.drag_border = self.checkBorder(event.scenePos())
+            # self.clearSelection()
+            # self.selection_box = SelectionBox(event.scenePos(), None, self)
+            # self.update()
+        # elif self.itemAt(event.scenePos()) is not None:
+            # super(MachineWidget, self).mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
         """If user is trying to create a connection update connections
@@ -295,6 +355,91 @@ class MachineWidget(QtGui.QGraphicsScene):
             area.addPolygon(selection_area)
             self.setSelectionArea(area)
             self.update()
+        elif self.drag_border is not None:
+            self.views()[0].autoScroll(event.scenePos())
+            self.resizeSurface(event.scenePos())
+            self.updateMovingSceneRect()
+            self.update()
+        else:
+            border = self.checkBorder(event.scenePos())
+            self.setCursor(border)
+
+    def setCursor(self, border=None):
+        """Set the cursor to the right style defined by border."""
+        if border is None:
+            border = self.drag_border
+        if border == LEFTB or border == RIGHTB:
+            self.views()[0].setCursor(QtCore.Qt.SizeHorCursor)
+        elif border == TOPB or border == BOTTOMB:
+            self.views()[0].setCursor(QtCore.Qt.SizeVerCursor)
+        elif border == BOTTOMLB or border == TOPRB:
+            self.views()[0].setCursor(QtCore.Qt.SizeBDiagCursor)
+        elif border == TOPLB or border == BOTTOMRB:
+            self.views()[0].setCursor(QtCore.Qt.SizeFDiagCursor)
+        else:
+            self.views()[0].setCursor(QtCore.Qt.ArrowCursor)
+
+    def checkBorder(self, pos):
+        """Check if cursor is close to the surface edge."""
+        distance = 20
+        top = self.surface.top()
+        bottom = self.surface.bottom()
+        left = self.surface.left()
+        right = self.surface.right()
+        if not self.surface.contains(pos):
+            if abs(left - pos.x()) < distance and top < pos.y() < bottom:
+                return LEFTB
+            elif abs(right - pos.x()) < distance and top < pos.y() < bottom:
+                return RIGHTB
+            elif abs(top - pos.y()) < distance and left < pos.x() < right:
+                return TOPB
+            elif abs(bottom - pos.y()) < distance and left < pos.x() < right:
+                return BOTTOMB
+            elif (self.surface.topLeft()- pos).manhattanLength() < distance:
+                return TOPLB
+            elif (self.surface.topRight()- pos).manhattanLength() < distance:
+                return TOPRB
+            elif (self.surface.bottomLeft()- pos).manhattanLength() < distance:
+                return BOTTOMLB
+            elif (self.surface.bottomRight()- pos).manhattanLength() < distance:
+                return BOTTOMRB
+        return None
+
+    def resizeSurface(self, pos):
+        old_rect = QtCore.QRectF(self.surface)
+        border = self.drag_border
+        if border == LEFTB or border == BOTTOMLB or border == TOPLB:
+            if pos.x() < self.surface.right():
+                if pos.x() < self.surface.left() - ui_circuit.XSIZE:
+                    self.surface.setLeft(pos.x() - pos.x() % ui_circuit.XSIZE +
+                                         ui_circuit.XSIZE)
+                    self.populateVerticalLines(self.surface.left(), old_rect.left())
+                elif pos.x() > self.surface.left() + ui_circuit.XSIZE:
+                    self.surface.setLeft(pos.x() - pos.x() % ui_circuit.XSIZE)
+        if border == RIGHTB or border == BOTTOMRB or border == TOPRB:
+            if pos.x() > self.surface.left():
+                if pos.x() < self.surface.right() - ui_circuit.XSIZE:
+                    self.surface.setRight(pos.x() - pos.x() % ui_circuit.XSIZE +
+                                          ui_circuit.XSIZE)
+                elif pos.x() > self.surface.right() + ui_circuit.XSIZE:
+                    self.surface.setRight(pos.x() - pos.x() % ui_circuit.XSIZE)
+                    self.populateVerticalLines(old_rect.right(), self.surface.right())
+        if border == TOPB or border == TOPLB or border == TOPRB:
+            if pos.y() < self.surface.bottom():
+                if pos.y() < self.surface.top() - ui_circuit.YSIZE:
+                    self.surface.setTop(pos.y() - pos.y() % ui_circuit.YSIZE +
+                                        ui_circuit.YSIZE)
+                    self.populateHorizontalLines(self.surface.top(), old_rect.top())
+                elif pos.y() > self.surface.top() + ui_circuit.YSIZE:
+                    self.surface.setTop(pos.y() - pos.y() % ui_circuit.YSIZE)
+        if border == BOTTOMB or border == BOTTOMLB or border == BOTTOMRB:
+            if pos.y() > self.surface.top():
+                if pos.y() < self.surface.bottom() - ui_circuit.YSIZE:
+                    self.surface.setBottom(pos.y() - pos.y() % ui_circuit.YSIZE +
+                                           ui_circuit.YSIZE)
+                elif pos.y() > self.surface.bottom() + ui_circuit.YSIZE:
+                    self.surface.setBottom(pos.y() - pos.y() % ui_circuit.YSIZE)
+                    self.populateHorizontalLines(old_rect.bottom(), self.surface.bottom())
 
     def mouseReleaseEvent(self, event):
         """Remove the selection box and save the most recent valid
@@ -302,6 +447,8 @@ class MachineWidget(QtGui.QGraphicsScene):
         """
         super(MachineWidget, self).mouseReleaseEvent(event)
         self.views()[0].scroll_dir = None
+        self.drag_border = None
+        self.updateSceneRect()
         if self.selection_box is not None:
             if self.selection_box.boundingRect().isValid():
                 self.saveSelection(0)

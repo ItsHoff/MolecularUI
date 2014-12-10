@@ -5,9 +5,13 @@ Created on Jun 12, 2014
 '''
 
 from PyQt4 import QtGui, QtCore
-from ui_IO import UIIO
-from parameter_window import ParameterWindow
 
+XSIZE = 25
+YSIZE = 25
+LEFT_RECT = QtCore.QRectF(0, (YSIZE - XSIZE/2)/2,
+                               XSIZE/2, XSIZE/2)
+RIGHT_RECT = QtCore.QRectF(LEFT_RECT)
+RIGHT_RECT.moveTo(LEFT_RECT.x() + XSIZE/2, LEFT_RECT.y())
 
 class UICircuit(QtGui.QGraphicsItem):
     """Graphics item that represents the circuits of the machine."""
@@ -22,8 +26,10 @@ class UICircuit(QtGui.QGraphicsItem):
         self.setFlag(self.ItemIsSelectable, True)
         # self.setFlag(self.ItemIsMovable, True)
         # self.setFlag(self.ItemSendsScenePositionChanges, True)
-        self.xsize = 100
-        self.ysize = 100
+        self.xsize = XSIZE
+        self.ysize = YSIZE
+        self.left_rect = LEFT_RECT
+        self.right_rect = RIGHT_RECT
         self.circuit_info = {}
         self.dragged = False
         self.highlighted = False
@@ -31,10 +37,11 @@ class UICircuit(QtGui.QGraphicsItem):
 
     def addContextActions(self, menu):
         """Add circuit specific context actions into the menu."""
-        remove = QtGui.QAction("Remove "+self.name, menu)
-        QtCore.QObject.connect(remove, QtCore.SIGNAL("triggered()"),
-                               self.remove)
-        menu.addAction(remove)
+        pass
+        # remove = QtGui.QAction("Remove "+self.name, menu)
+        # QtCore.QObject.connect(remove, QtCore.SIGNAL("triggered()"),
+                               # self.remove)
+        # menu.addAction(remove)
 
     def remove(self):
         """Call the scene to remove the circuit."""
@@ -81,19 +88,25 @@ class UICircuit(QtGui.QGraphicsItem):
 
     def paint(self, painter, options, widget):
         """Paint the circuit. Called automatically by the scene."""
-        if self.highlighted:
-            self.setZValue(2)
-            painter.setBrush(QtGui.QColor(188, 244, 184))
-        elif self.isSelected():
-            self.setZValue(1)
-            painter.setBrush(QtGui.QColor(165, 198, 255))
-        else:
-            self.setZValue(0)
-            painter.setBrush(QtGui.QColor(222, 244, 251))
+        if not self.scene().surface.contains(self.boundingRect().translated(self.pos())):
+            self.scene().removeCircuit(self)
+            return
+        # if self.highlighted:
+            # self.setZValue(2)
+            # painter.setBrush(QtGui.QColor(188, 244, 184))
+        # elif self.isSelected():
+            # self.setZValue(1)
+            # painter.setBrush(QtGui.QColor(165, 198, 255))
+        # else:
+        self.setZValue(0)
+        painter.setBrush(QtGui.QColor(100, 100, 100))
         pen = QtGui.QPen(QtGui.QColor(0, 0, 0))
-        pen.setWidth(2)
+        pen.setWidth(1)
         painter.setPen(pen)
-        painter.drawRoundedRect(0, 0, self.xsize, self.ysize, 10, 10)
+        painter.drawRect(0, 0, self.xsize, self.ysize)
+        painter.setBrush(QtGui.QColor(255, 0, 0))
+        painter.drawEllipse(self.left_rect)
+        painter.drawEllipse(self.right_rect)
 
     def mousePressEvent(self, event):
         """If left mouse button is pressed down start dragging
@@ -124,8 +137,8 @@ class UICircuit(QtGui.QGraphicsItem):
         if self.dragged:
             old_pos = self.pos()
             pos = event.scenePos()
-            pos.setX(pos.x() - pos.x() % 100)
-            pos.setY(pos.y() - pos.y() % 100)
+            pos.setX(pos.x() - pos.x() % self.xsize)
+            pos.setY(pos.y() - pos.y() % self.ysize)
             self.setPos(pos)
             # If new position collides with other circuit
             # return to old position.

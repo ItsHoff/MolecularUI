@@ -19,9 +19,6 @@ from PyQt4 import QtGui, QtCore
 
 from machine_widget import MachineWidget
 from machine_view import MachineView
-import circuit_info
-import circuits
-import script
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -179,19 +176,22 @@ class MainWidget(QtGui.QWidget):
     def loadCircuits(self, tree_widget):
         """Load all the circuits from the circuits file to the tree_widget"""
         groups = {}
-        for group in circuit_info.groups:
-            top_item = QtGui.QTreeWidgetItem(tree_widget)
-            top_item.setText(0, group)
-            top_item.setFlags(top_item.flags() & ~QtCore.Qt.ItemIsDragEnabled
-                              & ~QtCore.Qt.ItemIsSelectable)
-            groups[group] = top_item
-        for name, info in circuits.circuits.iteritems():
-            group = info.group
-            sub_item = QtGui.QTreeWidgetItem(groups[group])
-            sub_item.setText(0, name)
+        top_item = QtGui.QTreeWidgetItem(tree_widget)
+        top_item.setText(0, "Test Group")
+        top_item.setFlags(top_item.flags() & ~QtCore.Qt.ItemIsDragEnabled
+                          & ~QtCore.Qt.ItemIsSelectable)
+        groups["Test Group"] = top_item
+        top_item = QtGui.QTreeWidgetItem(tree_widget)
+        top_item.setText(0, "Recently Used")
+        top_item.setFlags(top_item.flags() & ~QtCore.Qt.ItemIsDragEnabled
+                          & ~QtCore.Qt.ItemIsSelectable)
+        groups["Recently Used"] = top_item
+        sub_item = QtGui.QTreeWidgetItem(groups["Test Group"])
+        sub_item.setText(0, "Test Item")
 
     def createScript(self):
         """Create pyvafm script from the current machine state."""
+        print len(self.machine_widget.items())
         status_bar = self.window().statusBar()
         status_bar.showMessage("Not yet implemented!", 3000)
         # status_bar.showMessage("Creating script...", 10000)
@@ -246,15 +246,12 @@ class SaveState(object):
 
     def __init__(self):
         self.circuits = []
-        self.connections = []
 
     def create(self, main_window):
         """Gather all the data for saving without Qt bindings."""
         machine_widget = main_window.centralWidget().machine_widget
         for circuit in machine_widget.circuits:
             self.circuits.append(circuit.getSaveState())
-        for connection in machine_widget.connections:
-            self.connections.append(connection.getSaveState())
 
     def createFromSelected(self, main_window):
         """Gather all the data from selected items for saving
@@ -263,8 +260,6 @@ class SaveState(object):
         machine_widget = main_window.centralWidget().machine_widget
         for circuit in machine_widget.selectedItems():
             self.circuits.append(circuit.getSaveState())
-        for connection in machine_widget.selectedConnections():
-            self.connections.append(connection.getSaveState())
 
     def load(self, main_window):
         """Load the save state stored in this object."""
@@ -272,8 +267,6 @@ class SaveState(object):
         machine_widget.clearAll()
         for circuit in self.circuits:
             machine_widget.addLoadedCircuit(circuit)
-        for connection in self.connections:
-            machine_widget.addLoadedConnection(connection)
         self.cleanLoadedItems(machine_widget)
         machine_widget.updateSceneRect()
 
@@ -283,8 +276,6 @@ class SaveState(object):
         machine_widget.clearSelection()
         for circuit in self.circuits:
             machine_widget.addLoadedCircuit(circuit)
-        for connection in self.connections:
-            machine_widget.addLoadedConnection(connection)
         self.cleanLoadedItems(machine_widget)
         machine_widget.updateSceneRect()
         machine_widget.saveSelection(0)
@@ -293,8 +284,6 @@ class SaveState(object):
         """Clean the references to the loaded items from save states."""
         for circuit in machine_widget.circuits:
             circuit.getSaveState()
-        for connection in machine_widget.connections:
-            connection.getSaveState()
 
 
 
