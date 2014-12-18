@@ -177,17 +177,17 @@ class MainWidget(QtGui.QWidget):
         """Load all the circuits from the circuits file to the tree_widget"""
         groups = {}
         top_item = QtGui.QTreeWidgetItem(tree_widget)
-        top_item.setText(0, "Test Group")
+        top_item.setText(0, "Contacts")
         top_item.setFlags(top_item.flags() & ~QtCore.Qt.ItemIsDragEnabled
                           & ~QtCore.Qt.ItemIsSelectable)
-        groups["Test Group"] = top_item
+        groups["Contacts"] = top_item
         top_item = QtGui.QTreeWidgetItem(tree_widget)
         top_item.setText(0, "Recently Used")
         top_item.setFlags(top_item.flags() & ~QtCore.Qt.ItemIsDragEnabled
                           & ~QtCore.Qt.ItemIsSelectable)
         groups["Recently Used"] = top_item
-        sub_item = QtGui.QTreeWidgetItem(groups["Test Group"])
-        sub_item.setText(0, "Test Item")
+        sub_item = QtGui.QTreeWidgetItem(groups["Contacts"])
+        sub_item.setText(0, "Contact")
 
     def createScript(self):
         """Create pyvafm script from the current machine state."""

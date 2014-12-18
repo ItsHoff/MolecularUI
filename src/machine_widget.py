@@ -6,8 +6,8 @@ Created on Jun 6, 2014
 
 from PyQt4 import QtGui, QtCore
 
-import ui_circuit
-from ui_circuit import UICircuit
+from hydrogen import Hydrogen
+from contact import Contact
 from selection_box import SelectionBox
 
 TOPB = 1
@@ -26,7 +26,8 @@ class MachineWidget(QtGui.QGraphicsScene):
     def __init__(self, tree_widget, parent=None):
         super(MachineWidget, self).__init__(parent)
         self.tree_widget = tree_widget
-        self.surface = QtCore.QRectF(-250, -250, 500, 500)
+        self.surface = QtCore.QRectF(-10 * Hydrogen.XSIZE, -20 * Hydrogen.YSIZE,
+                                     20 * Hydrogen.XSIZE, 40 * Hydrogen.YSIZE)
         self.circuits = []
         self.selection_box = None
         self.drag_border = None
@@ -72,26 +73,26 @@ class MachineWidget(QtGui.QGraphicsScene):
             x = self.surface.left()
             while x < self.surface.right():
                 self.addCircuit(x, y)
-                x += ui_circuit.XSIZE
-            y += ui_circuit.YSIZE
+                x += Hydrogen.XSIZE
+            y += Hydrogen.YSIZE
 
     def populateVerticalLines(self, xmin, xmax):
-        for x in range(int(xmin), int(xmax) + ui_circuit.XSIZE, ui_circuit.XSIZE):
+        for x in range(int(xmin), int(xmax) + Hydrogen.XSIZE, Hydrogen.XSIZE):
             y = self.surface.top()
-            items_at_line = self.items(x, y, ui_circuit.XSIZE, self.surface.bottom() - y)
-            if len(items_at_line) < (self.surface.bottom() - y)/ui_circuit.YSIZE:
+            items_at_line = self.items(x, y, Hydrogen.XSIZE, self.surface.bottom() - y)
+            if len(items_at_line) < (self.surface.bottom() - y)/Hydrogen.YSIZE:
                 while y < self.surface.bottom():
                     self.addCircuit(x, y)
-                    y += ui_circuit.YSIZE
+                    y += Hydrogen.YSIZE
 
     def populateHorizontalLines(self, ymin, ymax):
-        for y in range(int(ymin), int(ymax) + ui_circuit.YSIZE, ui_circuit.YSIZE):
+        for y in range(int(ymin), int(ymax) + Hydrogen.YSIZE, Hydrogen.YSIZE):
             x = self.surface.left()
-            items_at_line = self.items(x, y, self.surface.right() - x, ui_circuit.YSIZE)
-            if len(items_at_line) < (self.surface.right() - x)/ui_circuit.XSIZE:
+            items_at_line = self.items(x, y, self.surface.right() - x, Hydrogen.YSIZE)
+            if len(items_at_line) < (self.surface.right() - x)/Hydrogen.XSIZE:
                 while x < self.surface.right():
                     self.addCircuit(x, y)
-                    x += ui_circuit.XSIZE
+                    x += Hydrogen.XSIZE
 
     def addCircuits(self):
         """Add some circuits to the scene on startup."""
@@ -101,16 +102,20 @@ class MachineWidget(QtGui.QGraphicsScene):
         """Add a circuit with corresponding name to the scene
         and update the scene.
         """
-        if not self.itemAt(x, y):
-            circuit = UICircuit(x-x%ui_circuit.XSIZE, y-y%ui_circuit.YSIZE)
+        if not isinstance(self.itemAt(x, y), Hydrogen):
+            circuit = Hydrogen(x-x%Hydrogen.XSIZE, y-y%Hydrogen.YSIZE)
             self.circuits.append(circuit)
             self.addItem(circuit)
             # self.updateSceneRect()
             # self.update()
 
+    def addContact(self, x, y):
+        contact = Contact(x, y)
+        self.addItem(contact)
+
     def addDroppedCircuit(self, pos):
         """Add the dropped circuit to the scene after a dropEvent."""
-        self.addCircuit(pos.x(), pos.y())
+        self.addContact(pos.x(), pos.y())
 
     def addClickedCircuit(self, pos):
         """Add circuit selected from the main_window tree_widget
@@ -141,8 +146,8 @@ class MachineWidget(QtGui.QGraphicsScene):
         """Add widget specific context actions to the
         context menu given as parameter.
         """
-        clear_all = QtGui.QAction("Delete All", menu)
-        self.connect(clear_all, QtCore.SIGNAL("triggered()"), self.deleteAll)
+        clear_all = QtGui.QAction("Reset", menu)
+        self.connect(clear_all, QtCore.SIGNAL("triggered()"), self.reset)
 
         save_selected = QtGui.QAction("Save Selected", menu)
         self.connect(save_selected, QtCore.SIGNAL("triggered()"),
@@ -168,10 +173,10 @@ class MachineWidget(QtGui.QGraphicsScene):
         message_box.setDefaultButton(message_box.Yes)
         return message_box.exec_()
 
-    def deleteAll(self):
+    def reset(self):
         """Clear everything from the scene after confirmation."""
-        value = self.showMessageBox("Delete All",
-                                    "Do you want to delete everything?")
+        value = self.showMessageBox("Reset",
+                                    "Do you want to reset?")
         if value == QtGui.QMessageBox.Yes:
             self.clearAll()
 
@@ -179,9 +184,9 @@ class MachineWidget(QtGui.QGraphicsScene):
         """Clear everything from the scene."""
         status_bar = self.parent().window().statusBar()
         for circuit in self.circuits[:]:
-            self.removeCircuit(circuit)
-            # self.updateSceneRect()
-            status_bar.showMessage("Cleared all", 3000)
+            circuit.left_status = Hydrogen.NORMAL
+            circuit.right_status = Hydrogen.NORMAL
+            status_bar.showMessage("Reset", 3000)
         self.update()
 
     def removeCircuit(self, circuit):
@@ -267,27 +272,6 @@ class MachineWidget(QtGui.QGraphicsScene):
     def drawSurface(self, qp):
         qp.setBrush(QtGui.QColor(48, 48, 122))
         qp.drawRect(self.surface)
-        # pen = QtGui.QPen(QtGui.QColor(0, 0, 0))
-        # pen.setWidth(1)
-        # qp.setPen(pen)
-        # qp.setBrush(QtGui.QColor(255, 0, 0))
-        # y = self.surface.top()
-        # while y < self.surface.bottom():
-            # x = self.surface.left()
-            # qp.drawLine(x, y, self.surface.right(), y)
-            # while x < self.surface.right():
-                # left_rect = QtCore.QRectF(x, y + (ui_circuit.YSIZE - ui_circuit.XSIZE/2)/2,
-                                          # ui_circuit.XSIZE/2, ui_circuit.XSIZE/2)
-                # right_rect = QtCore.QRectF(left_rect)
-                # right_rect.moveTo(left_rect.x() + ui_circuit.XSIZE/2, left_rect.y())
-                # qp.drawEllipse(left_rect)
-                # qp.drawEllipse(right_rect)
-                # x += ui_circuit.XSIZE
-            # y += ui_circuit.YSIZE
-        # x = self.surface.left()
-        # while x < self.surface.right():
-            # qp.drawLine(x, self.surface.top(), x, self.surface.bottom())
-            # x += ui_circuit.XSIZE
 
     def dragEnterEvent(self, event):
         """Accept event for drag & drop to work."""
@@ -411,35 +395,35 @@ class MachineWidget(QtGui.QGraphicsScene):
         border = self.drag_border
         if border == LEFTB or border == BOTTOMLB or border == TOPLB:
             if pos.x() < self.surface.right():
-                if pos.x() < self.surface.left() - ui_circuit.XSIZE:
-                    self.surface.setLeft(pos.x() - pos.x() % ui_circuit.XSIZE +
-                                         ui_circuit.XSIZE)
+                if pos.x() < self.surface.left() - Hydrogen.XSIZE:
+                    self.surface.setLeft(pos.x() - pos.x() % Hydrogen.XSIZE +
+                                         Hydrogen.XSIZE)
                     self.populateVerticalLines(self.surface.left(), old_rect.left())
-                elif pos.x() > self.surface.left() + ui_circuit.XSIZE:
-                    self.surface.setLeft(pos.x() - pos.x() % ui_circuit.XSIZE)
+                elif pos.x() > self.surface.left() + Hydrogen.XSIZE:
+                    self.surface.setLeft(pos.x() - pos.x() % Hydrogen.XSIZE)
         if border == RIGHTB or border == BOTTOMRB or border == TOPRB:
             if pos.x() > self.surface.left():
-                if pos.x() < self.surface.right() - ui_circuit.XSIZE:
-                    self.surface.setRight(pos.x() - pos.x() % ui_circuit.XSIZE +
-                                          ui_circuit.XSIZE)
-                elif pos.x() > self.surface.right() + ui_circuit.XSIZE:
-                    self.surface.setRight(pos.x() - pos.x() % ui_circuit.XSIZE)
+                if pos.x() < self.surface.right() - Hydrogen.XSIZE:
+                    self.surface.setRight(pos.x() - pos.x() % Hydrogen.XSIZE +
+                                          Hydrogen.XSIZE)
+                elif pos.x() > self.surface.right() + Hydrogen.XSIZE:
+                    self.surface.setRight(pos.x() - pos.x() % Hydrogen.XSIZE)
                     self.populateVerticalLines(old_rect.right(), self.surface.right())
         if border == TOPB or border == TOPLB or border == TOPRB:
             if pos.y() < self.surface.bottom():
-                if pos.y() < self.surface.top() - ui_circuit.YSIZE:
-                    self.surface.setTop(pos.y() - pos.y() % ui_circuit.YSIZE +
-                                        ui_circuit.YSIZE)
+                if pos.y() < self.surface.top() - Hydrogen.YSIZE:
+                    self.surface.setTop(pos.y() - pos.y() % Hydrogen.YSIZE +
+                                        Hydrogen.YSIZE)
                     self.populateHorizontalLines(self.surface.top(), old_rect.top())
-                elif pos.y() > self.surface.top() + ui_circuit.YSIZE:
-                    self.surface.setTop(pos.y() - pos.y() % ui_circuit.YSIZE)
+                elif pos.y() > self.surface.top() + Hydrogen.YSIZE:
+                    self.surface.setTop(pos.y() - pos.y() % Hydrogen.YSIZE)
         if border == BOTTOMB or border == BOTTOMLB or border == BOTTOMRB:
             if pos.y() > self.surface.top():
-                if pos.y() < self.surface.bottom() - ui_circuit.YSIZE:
-                    self.surface.setBottom(pos.y() - pos.y() % ui_circuit.YSIZE +
-                                           ui_circuit.YSIZE)
-                elif pos.y() > self.surface.bottom() + ui_circuit.YSIZE:
-                    self.surface.setBottom(pos.y() - pos.y() % ui_circuit.YSIZE)
+                if pos.y() < self.surface.bottom() - Hydrogen.YSIZE:
+                    self.surface.setBottom(pos.y() - pos.y() % Hydrogen.YSIZE +
+                                           Hydrogen.YSIZE)
+                elif pos.y() > self.surface.bottom() + Hydrogen.YSIZE:
+                    self.surface.setBottom(pos.y() - pos.y() % Hydrogen.YSIZE)
                     self.populateHorizontalLines(old_rect.bottom(), self.surface.bottom())
 
     def mouseReleaseEvent(self, event):
