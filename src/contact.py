@@ -1,9 +1,11 @@
 import math
 
 from PyQt4 import QtCore, QtGui
+import numpy as np
 
 from ui_circuit import UICircuit
 from hydrogen import Hydrogen
+import output
 
 class Contact(UICircuit):
 
@@ -27,11 +29,37 @@ class Contact(UICircuit):
         self.ysize = self.YSIZE
         self.dragged = False
         self.setZValue(1)
+        self.translate(-25, -25)
         self.setTransformOriginPoint(50, 50)
 
-    def paint(self, painter, options, widget):
+    def getOutput(self, result):
+        if self.onSurface():
+            pos = self.pos() - self.scene().surface.topLeft()
+            out_pos = 1.0*pos.x()/Hydrogen.XSIZE * output.X_SCALE
+            out_pos += 1.0*pos.y()/Hydrogen.YSIZE * output.Y_SCALE
+            translation = 0.5*output.X_SCALE + output.Y_SCALE + output.HEIGHT
+            rotation_m = output.getClockwiseRotationM(self.rotation())
+            with open("../molecules/contact.xyz", "r") as f:
+                count = 0
+                f.seek(0)
+                for line in f:
+                    count += 1
+                    if count > 2:
+                        split = line.split()
+                        atom_pos = np.array([float(x) for x in split[1:4]])
+                        atom_pos = np.dot(rotation_m, atom_pos) + out_pos + translation
+                        result.append("%-4s %-10f %-10f %-10f %d" %
+                            ((split[0],) + tuple(atom_pos) + ((len(result) + 1),)))
+
+    def onSurface(self):
         bounding_rect = self.sceneTransform().mapRect(self.boundingRect())
         if self.scene().surface.intersects(bounding_rect):
+            return True
+        else:
+            return False
+
+    def paint(self, painter, options, widget):
+        if self.onSurface():
             painter.setBrush(QtGui.QColor(241, 231, 65))
             painter.setPen(QtGui.QColor(0, 0, 0))
             painter.drawPath(self.PATH)

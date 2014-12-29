@@ -5,10 +5,12 @@ Created on Jun 6, 2014
 '''
 
 from PyQt4 import QtGui, QtCore
+import numpy as np
 
 from hydrogen import Hydrogen
 from contact import Contact
 from selection_box import SelectionBox
+import output
 
 TOPB = 1
 TOPRB = 2
@@ -141,6 +143,31 @@ class MachineWidget(QtGui.QGraphicsScene):
         for circuit in self.circuits:
             if circuit.save_state == save_state:
                 return circuit
+
+    def getOutput(self):
+        result = []
+        base_translation = output.LEFT_H_POS * output.TOTAL_SCALE
+        with open("../molecules/base.xyz", "r") as f:
+            for i in range(int(self.surface.width()/Hydrogen.XSIZE)):
+                x_offset = i*output.X_SCALE
+                for j in range(int(self.surface.height()/Hydrogen.YSIZE)):
+                    y_offset = j*output.Y_SCALE
+                    count = 0
+                    f.seek(0)
+                    for line in f:
+                        count += 1
+                        if count > 2:
+                            split = line.split()
+                            pos = np.array([float(x) for x in split[1:4]])
+                            pos = pos + x_offset + y_offset + base_translation
+                            result.append("%-4s %-10f %-10f %-10f %d" %
+                                ((split[0],) + tuple(pos) + ((len(result) + 1),)))
+        for item in self.items():
+            item.getOutput(result)
+        return result
+
+
+
 
     def addContextActions(self, menu):
         """Add widget specific context actions to the

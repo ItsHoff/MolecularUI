@@ -2,16 +2,19 @@
 from PyQt4 import QtGui, QtCore
 
 from ui_circuit import UICircuit
+import output
 
 class Hydrogen(UICircuit):
 
     XSIZE = 50
     YSIZE = 25
-    BORDER = 5
-    LEFT_RECT = QtCore.QRectF(BORDER, (YSIZE - XSIZE/2 + BORDER)/2,
-                              XSIZE/2 - BORDER, XSIZE/2 - BORDER)
-    RIGHT_RECT = QtCore.QRectF(LEFT_RECT)
-    RIGHT_RECT.moveTo(XSIZE/2, LEFT_RECT.y())
+    RADIUS = 0.4 * YSIZE
+    LEFT_RECT = QtCore.QRectF(output.LEFT_H_POS[0]*XSIZE - RADIUS,
+                              output.LEFT_H_POS[2]*YSIZE - RADIUS,
+                              2*RADIUS, 2*RADIUS)
+    RIGHT_RECT = QtCore.QRectF(output.RIGHT_H_POS[0]*XSIZE - RADIUS,
+                               output.RIGHT_H_POS[2]*YSIZE - RADIUS,
+                               2*RADIUS, 2*RADIUS)
     NORMAL = 0
     VACANT = 1
     NORMAL_COLOR = QtGui.QColor(255, 0, 0)
@@ -24,9 +27,29 @@ class Hydrogen(UICircuit):
         self.right_status = self.NORMAL
         self.left_status = self.NORMAL
 
+    def getOutput(self, result):
+        if not self.onSurface():
+            return
+        pos = self.pos() - self.scene().surface.topLeft()
+        out_pos = pos.x()/self.XSIZE * output.X_SCALE + pos.y()/self.YSIZE * output.Y_SCALE
+        if self.left_status == self.NORMAL:
+            left_pos = out_pos + output.LEFT_H_POS * output.TOTAL_SCALE
+            result.append("%-4s %-10f %-10f %-10f %d" %
+                    (("HE",) + tuple(left_pos) + ((len(result) + 1),)))
+        if self.right_status == self.NORMAL:
+            right_pos = out_pos + output.RIGHT_H_POS * output.TOTAL_SCALE
+            result.append("%-4s %-10f %-10f %-10f %d" %
+                    (("HE",) + tuple(right_pos) + ((len(result) + 1),)))
+
+    def onSurface(self):
+        if self.scene().surface.contains(self.boundingRect().translated(self.pos())):
+            return True
+        else:
+            return False
+
     def paint(self, painter, options, widget):
         """Paint the circuit. Called automatically by the scene."""
-        if not self.scene().surface.contains(self.boundingRect().translated(self.pos())):
+        if not self.onSurface():
             return
         # painter.setBrush(QtGui.QColor(100, 100, 100))
         pen = QtGui.QPen(QtGui.QColor(0, 0, 0))

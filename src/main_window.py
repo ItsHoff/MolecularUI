@@ -142,10 +142,10 @@ class MainWidget(QtGui.QWidget):
 
         # Set up the buttons on the top left of the UI
         button_grid = QtGui.QGridLayout()
-        create_button = QtGui.QPushButton("Create Script")
+        create_button = QtGui.QPushButton("Create Output")
 
         QtCore.QObject.connect(create_button, QtCore.SIGNAL("clicked()"),
-                               self.createScript)
+                               self.createOutput)
 
         button_grid.addWidget(create_button, 0, 0)
 
@@ -189,56 +189,24 @@ class MainWidget(QtGui.QWidget):
         sub_item = QtGui.QTreeWidgetItem(groups["Contacts"])
         sub_item.setText(0, "Contact")
 
-    def createScript(self):
+    def createOutput(self):
         """Create pyvafm script from the current machine state."""
-        print len(self.machine_widget.items())
         status_bar = self.window().statusBar()
-        status_bar.showMessage("Not yet implemented!", 3000)
-        # status_bar.showMessage("Creating script...", 10000)
-        # savefile = QtGui.QFileDialog.getSaveFileName(self, "Save script",
-                                                     # "../scripts")
-        # if not savefile:
-            # status_bar.showMessage("Creating script... Failed!", 2000)
-            # return
-        # blocks = circuits.blocks[:]
-        # with open("formats/machine.format", "r") as f:
-            # script.createFromFormat(blocks, f, self.parameters)
-
-        # # Create script lines for all the circuits
-        # for circuit in self.machine_widget.circuits:
-            # circuit.updateParameters()
-            # if circuit.circuit_info.script_format:
-                # with open(circuit.circuit_info.script_format, "r") as f:
-                    # script.createFromFormat(blocks, f, circuit.parameters)
-            # else:
-                # status_bar.showMessage("Creating script... Failed!", 2000)
-                # raise NotImplementedError("Circuit " + circuit.name +
-                      # " doesn't have proper script format implemented!")
-
-        # # Create script lines for all the inputs and outputs
-        # for connection in self.machine_widget.connections:
-            # with open("formats/connect.format", "r") as f:
-                # output = connection.output.circuit.name+"."+connection.output.name
-                # input_ = connection.input_.circuit.name+"."+connection.input_.name
-                # script.createFromFormat(blocks, f, {"output": output,
-                                                    # "input": input_})
-
-        # Create script lines for the run commands given in run selection tree
-        # selection_tree = self.run_selection_window.selection_tree
-        # for i in range(selection_tree.topLevelItemCount()):
-            # top_item = selection_tree.topLevelItem(i)
-            # widget = selection_tree.itemWidget(top_item, 0)
-            # blocks[4] += widget.text() + '\n'
-
+        status_bar.showMessage("Creating script...", 10000)
+        savefile = QtGui.QFileDialog.getSaveFileName(self, "Save output", "../output")
+        if not savefile:
+            status_bar.showMessage("Creating script... Failed!", 2000)
+            return
+        result = self.machine_widget.getOutput()
         # Write all the lines to the savefile
-        # with open(savefile, 'w') as f:
-            # i = 0
-            # for block in blocks:
-                # f.write(block)
-                # f.write('\n\n')
-                # i += 1
-        # status_bar.showMessage("Creating script... Done!", 2000)
-        # return savefile
+        with open(savefile, 'w') as out:
+            out.write(str(len(result)))
+            out.write("\n\n")
+            for line in result:
+                out.write(line)
+                out.write("\n")
+        status_bar.showMessage("Creating script... Done!", 2000)
+        return savefile
 
 
 class SaveState(object):
