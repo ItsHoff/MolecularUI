@@ -73,10 +73,9 @@ class MainWindow(QtGui.QMainWindow):
         of location.
         """
         self.statusBar().showMessage("Creating save state...", 10000)
-        save_state = SaveState()
-        save_state.create(self)
-        save_file = QtGui.QFileDialog().getSaveFileName(self, "Save Setup",
-                                                        "../saves")
+        save_state = SaveState.create(self)
+        # save_state.create(self)
+        save_file = QtGui.QFileDialog().getSaveFileName(self, "Save Setup", "../saves")
         if save_file:
             with open(save_file, "w") as f:
                 pickle.dump(save_state, f)
@@ -213,28 +212,34 @@ class SaveState(object):
     """Stores the global save state."""
 
     def __init__(self):
-        self.circuits = []
+        self.items = []
 
-    def create(self, main_window):
+    @classmethod
+    def create(cls, main_window):
         """Gather all the data for saving without Qt bindings."""
         machine_widget = main_window.centralWidget().machine_widget
-        for circuit in machine_widget.circuits:
-            self.circuits.append(circuit.getSaveState())
+        save_state = cls()
+        for item in machine_widget.items():
+            save_state.items.append(item.getSaveState())
+        return save_state
 
-    def createFromSelected(self, main_window):
+    @classmethod
+    def createFromSelected(cls, main_window):
         """Gather all the data from selected items for saving
         without Qt bindings.
         """
         machine_widget = main_window.centralWidget().machine_widget
-        for circuit in machine_widget.selectedItems():
-            self.circuits.append(circuit.getSaveState())
+        save_state = cls()
+        for item in machine_widget.selectedItems():
+            save_state.items.append(item.getSaveState())
+        return save_state
 
     def load(self, main_window):
         """Load the save state stored in this object."""
         machine_widget = main_window.centralWidget().machine_widget
         machine_widget.clearAll()
-        for circuit in self.circuits:
-            machine_widget.addLoadedCircuit(circuit)
+        for item in self.items:
+            machine_widget.addLoadedCircuit(item)
         self.cleanLoadedItems(machine_widget)
         machine_widget.updateSceneRect()
 
@@ -242,16 +247,16 @@ class SaveState(object):
         """Insert the save state into the current setup."""
         machine_widget = main_window.centralWidget().machine_widget
         machine_widget.clearSelection()
-        for circuit in self.circuits:
-            machine_widget.addLoadedCircuit(circuit)
+        for item in self.items:
+            machine_widget.addLoadedCircuit(item)
         self.cleanLoadedItems(machine_widget)
         machine_widget.updateSceneRect()
         machine_widget.saveSelection(0)
 
     def cleanLoadedItems(self, machine_widget):
         """Clean the references to the loaded items from save states."""
-        for circuit in machine_widget.circuits:
-            circuit.getSaveState()
+        for item in machine_widget.items:
+            item.getSaveState()
 
 
 

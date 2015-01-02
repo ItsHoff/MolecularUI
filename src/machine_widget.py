@@ -7,9 +7,10 @@ Created on Jun 6, 2014
 from PyQt4 import QtGui, QtCore
 import numpy as np
 
+from surface import Surface
 from hydrogen import Hydrogen
 from contact import Contact
-from selection_box import SelectionBox
+# from selection_box import SelectionBox
 import output
 
 TOPB = 1
@@ -28,9 +29,8 @@ class MachineWidget(QtGui.QGraphicsScene):
     def __init__(self, tree_widget, parent=None):
         super(MachineWidget, self).__init__(parent)
         self.tree_widget = tree_widget
-        self.surface = QtCore.QRectF(-10 * Hydrogen.XSIZE, -20 * Hydrogen.YSIZE,
-                                     20 * Hydrogen.XSIZE, 40 * Hydrogen.YSIZE)
-        self.circuits = []
+        self.surface = Surface(self)
+        self.molecules = []
         self.selection_box = None
         self.drag_border = None
         self.painting_status = None
@@ -39,8 +39,6 @@ class MachineWidget(QtGui.QGraphicsScene):
 
     def initWidget(self):
         """Initialise the UI of the widget."""
-        self.addCircuits()
-        self.populateSurface()
         self.updateSceneRect()
         self.update()
 
@@ -48,7 +46,7 @@ class MachineWidget(QtGui.QGraphicsScene):
         """Return a new scene rectangle based on the bounding rectangle
         of all scene items.
         """
-        rect = QtCore.QRectF(self.surface)
+        rect = self.surface.sceneBoundingRect()
         center = rect.center()
         rect.setHeight(rect.height() + 500)
         rect.setWidth(rect.width() + 500)
@@ -68,37 +66,6 @@ class MachineWidget(QtGui.QGraphicsScene):
         new_rect = self.getNewSceneRect()
         new_rect = new_rect.united(old_rect)
         self.setSceneRect(new_rect)
-
-    def populateSurface(self):
-        y = self.surface.top()
-        while y < self.surface.bottom():
-            x = self.surface.left()
-            while x < self.surface.right():
-                self.addCircuit(x, y)
-                x += Hydrogen.XSIZE
-            y += Hydrogen.YSIZE
-
-    def populateVerticalLines(self, xmin, xmax):
-        for x in range(int(xmin), int(xmax) + Hydrogen.XSIZE, Hydrogen.XSIZE):
-            y = self.surface.top()
-            items_at_line = self.items(x, y, Hydrogen.XSIZE, self.surface.bottom() - y)
-            if len(items_at_line) < (self.surface.bottom() - y)/Hydrogen.YSIZE:
-                while y < self.surface.bottom():
-                    self.addCircuit(x, y)
-                    y += Hydrogen.YSIZE
-
-    def populateHorizontalLines(self, ymin, ymax):
-        for y in range(int(ymin), int(ymax) + Hydrogen.YSIZE, Hydrogen.YSIZE):
-            x = self.surface.left()
-            items_at_line = self.items(x, y, self.surface.right() - x, Hydrogen.YSIZE)
-            if len(items_at_line) < (self.surface.right() - x)/Hydrogen.XSIZE:
-                while x < self.surface.right():
-                    self.addCircuit(x, y)
-                    x += Hydrogen.XSIZE
-
-    def addCircuits(self):
-        """Add some circuits to the scene on startup."""
-        pass
 
     def addCircuit(self, x, y):
         """Add a circuit with corresponding name to the scene
@@ -165,9 +132,6 @@ class MachineWidget(QtGui.QGraphicsScene):
         for item in self.items():
             item.getOutput(result)
         return result
-
-
-
 
     def addContextActions(self, menu):
         """Add widget specific context actions to the
@@ -277,8 +241,6 @@ class MachineWidget(QtGui.QGraphicsScene):
         qp.setBrush(QtGui.QColor(255, 255, 255))
         qp.drawRect(rect)
         self.drawGrid(qp, rect)
-        # qp.drawRect(self.surface)
-        self.drawSurface(qp)
 
     def drawGrid(self, qp, rect):
         """Draw a grid with a spacing of 100 to the background."""
@@ -295,10 +257,6 @@ class MachineWidget(QtGui.QGraphicsScene):
         qp.setPen(solid_pen)
         qp.drawLine(0, int(tl.y()), 0, int(br.y()))
         qp.drawLine(int(tl.x()), 0, int(br.x()), 0)
-
-    def drawSurface(self, qp):
-        qp.setBrush(QtGui.QColor(48, 48, 122))
-        qp.drawRect(self.surface)
 
     def dragEnterEvent(self, event):
         """Accept event for drag & drop to work."""
@@ -369,7 +327,7 @@ class MachineWidget(QtGui.QGraphicsScene):
             self.update()
         elif self.drag_border is not None:
             self.views()[0].autoScroll(event.scenePos())
-            self.resizeSurface(event.scenePos())
+            self.surface.resize(event.scenePos(), self.drag_border)
             self.updateMovingSceneRect()
             self.update()
         else:
@@ -394,11 +352,12 @@ class MachineWidget(QtGui.QGraphicsScene):
     def checkBorder(self, pos):
         """Check if cursor is close to the surface edge."""
         distance = 20
-        top = self.surface.top()
-        bottom = self.surface.bottom()
-        left = self.surface.left()
-        right = self.surface.right()
-        if not self.surface.contains(pos):
+        surface_rect = self.surface.sceneBoundingRect()
+        top = surface_rect.top()
+        bottom = surface_rect.bottom()
+        left = surface_rect.left()
+        right = surface_rect.right()
+        if not surface_rect.contains(pos):
             if abs(left - pos.x()) < distance and top < pos.y() < bottom:
                 return LEFTB
             elif abs(right - pos.x()) < distance and top < pos.y() < bottom:
@@ -407,51 +366,15 @@ class MachineWidget(QtGui.QGraphicsScene):
                 return TOPB
             elif abs(bottom - pos.y()) < distance and left < pos.x() < right:
                 return BOTTOMB
-            elif (self.surface.topLeft()- pos).manhattanLength() < distance:
+            elif (surface_rect.topLeft()- pos).manhattanLength() < distance:
                 return TOPLB
-            elif (self.surface.topRight()- pos).manhattanLength() < distance:
+            elif (surface_rect.topRight()- pos).manhattanLength() < distance:
                 return TOPRB
-            elif (self.surface.bottomLeft()- pos).manhattanLength() < distance:
+            elif (surface_rect.bottomLeft()- pos).manhattanLength() < distance:
                 return BOTTOMLB
-            elif (self.surface.bottomRight()- pos).manhattanLength() < distance:
+            elif (surface_rect.bottomRight()- pos).manhattanLength() < distance:
                 return BOTTOMRB
         return None
-
-    def resizeSurface(self, pos):
-        old_rect = QtCore.QRectF(self.surface)
-        border = self.drag_border
-        if border == LEFTB or border == BOTTOMLB or border == TOPLB:
-            if pos.x() < self.surface.right():
-                if pos.x() < self.surface.left() - Hydrogen.XSIZE:
-                    self.surface.setLeft(pos.x() - pos.x() % Hydrogen.XSIZE +
-                                         Hydrogen.XSIZE)
-                    self.populateVerticalLines(self.surface.left(), old_rect.left())
-                elif pos.x() > self.surface.left() + Hydrogen.XSIZE:
-                    self.surface.setLeft(pos.x() - pos.x() % Hydrogen.XSIZE)
-        if border == RIGHTB or border == BOTTOMRB or border == TOPRB:
-            if pos.x() > self.surface.left():
-                if pos.x() < self.surface.right() - Hydrogen.XSIZE:
-                    self.surface.setRight(pos.x() - pos.x() % Hydrogen.XSIZE +
-                                          Hydrogen.XSIZE)
-                elif pos.x() > self.surface.right() + Hydrogen.XSIZE:
-                    self.surface.setRight(pos.x() - pos.x() % Hydrogen.XSIZE)
-                    self.populateVerticalLines(old_rect.right(), self.surface.right())
-        if border == TOPB or border == TOPLB or border == TOPRB:
-            if pos.y() < self.surface.bottom():
-                if pos.y() < self.surface.top() - Hydrogen.YSIZE:
-                    self.surface.setTop(pos.y() - pos.y() % Hydrogen.YSIZE +
-                                        Hydrogen.YSIZE)
-                    self.populateHorizontalLines(self.surface.top(), old_rect.top())
-                elif pos.y() > self.surface.top() + Hydrogen.YSIZE:
-                    self.surface.setTop(pos.y() - pos.y() % Hydrogen.YSIZE)
-        if border == BOTTOMB or border == BOTTOMLB or border == BOTTOMRB:
-            if pos.y() > self.surface.top():
-                if pos.y() < self.surface.bottom() - Hydrogen.YSIZE:
-                    self.surface.setBottom(pos.y() - pos.y() % Hydrogen.YSIZE +
-                                           Hydrogen.YSIZE)
-                elif pos.y() > self.surface.bottom() + Hydrogen.YSIZE:
-                    self.surface.setBottom(pos.y() - pos.y() % Hydrogen.YSIZE)
-                    self.populateHorizontalLines(old_rect.bottom(), self.surface.bottom())
 
     def mouseReleaseEvent(self, event):
         """Remove the selection box and save the most recent valid

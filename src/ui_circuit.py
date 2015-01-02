@@ -9,11 +9,11 @@ from PyQt4 import QtGui, QtCore
 class UICircuit(QtGui.QGraphicsItem):
     """Graphics item that represents the circuits of the machine."""
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, parent=None):
         """Create a circuit defined by the circuit_info and
         place it into the at (x, y)
         """
-        super(UICircuit, self).__init__()
+        super(UICircuit, self).__init__(parent)
         self.setX(x)
         self.setY(y)
         self.xsize = 0
@@ -64,8 +64,7 @@ class UICircuit(QtGui.QGraphicsItem):
         """Return the bounding rectangle of the circuit.
         Required by the scene.
         """
-        bounding_rect = QtCore.QRectF(0, 0, self.xsize, self.ysize)
-        return bounding_rect
+        return QtCore.QRectF(0, 0, self.xsize, self.ysize)
 
     def paint(self, painter, options, widget):
         """Paint the circuit. Called automatically by the scene."""

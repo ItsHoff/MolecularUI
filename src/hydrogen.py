@@ -20,17 +20,17 @@ class Hydrogen(UICircuit):
     NORMAL_COLOR = QtGui.QColor(255, 0, 0)
     VACANT_COLOR = QtGui.QColor(43, 143, 141)
 
-    def __init__(self, x, y):
-        super(Hydrogen, self).__init__(x, y)
+    def __init__(self, x, y, parent):
         self.xsize = self.XSIZE
         self.ysize = self.YSIZE
         self.right_status = self.NORMAL
         self.left_status = self.NORMAL
+        super(Hydrogen, self).__init__(x, y, parent)
 
     def getOutput(self, result):
         if not self.onSurface():
             return
-        pos = self.pos() - self.scene().surface.topLeft()
+        pos = self.pos()
         out_pos = pos.x()/self.XSIZE * output.X_SCALE + pos.y()/self.YSIZE * output.Y_SCALE
         if self.left_status == self.NORMAL:
             left_pos = out_pos + output.LEFT_H_POS * output.TOTAL_SCALE
@@ -42,7 +42,7 @@ class Hydrogen(UICircuit):
                     (("HE",) + tuple(right_pos) + ((len(result) + 1),)))
 
     def onSurface(self):
-        if self.scene().surface.contains(self.boundingRect().translated(self.pos())):
+        if self.parentItem().contains(self.scenePos()):
             return True
         else:
             return False
@@ -73,6 +73,7 @@ class Hydrogen(UICircuit):
         """If left mouse button is pressed down start dragging
         the circuit. Toggle the circuit selection with control click.
         """
+        print "press"
         if event.button() == QtCore.Qt.LeftButton:
             if event.pos().x() < self.xsize/2:
                 if self.left_status == self.NORMAL:
