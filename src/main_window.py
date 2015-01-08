@@ -18,10 +18,6 @@ class MainWindow(QtGui.QMainWindow):
     def __init__(self):
         """Initialise the main window."""
         super(MainWindow, self).__init__()
-        self.initUI()
-
-    def initUI(self):
-        """Initialise the UI elements of the main window."""
         self.setGeometry(100, 100, 800, 500)
         self.setWindowTitle('MolecularUI')
 
@@ -192,15 +188,14 @@ class SaveState(object):
     """Stores the global save state."""
 
     def __init__(self):
-        self.items = []
+        self.surface = None
 
     @classmethod
     def create(cls, main_window):
         """Gather all the data for saving without Qt bindings."""
-        machine_widget = main_window.centralWidget().machine_widget
+        scene = main_window.centralWidget().graphics_scene
         save_state = cls()
-        for item in machine_widget.items():
-            save_state.items.append(item.getSaveState())
+        save_state.surface = scene.surface.getSaveState()
         return save_state
 
     @classmethod
@@ -216,12 +211,10 @@ class SaveState(object):
 
     def load(self, main_window):
         """Load the save state stored in this object."""
-        machine_widget = main_window.centralWidget().machine_widget
-        machine_widget.clearAll()
-        for item in self.items:
-            machine_widget.addLoadedCircuit(item)
-        self.cleanLoadedItems(machine_widget)
-        machine_widget.updateSceneRect()
+        scene = main_window.centralWidget().graphics_scene
+        scene.clearAll()
+        self.surface.load(scene)
+        scene.updateSceneRect()
 
     def insert(self, main_window):
         """Insert the save state into the current setup."""

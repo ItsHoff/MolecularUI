@@ -32,7 +32,7 @@ class Hydrogen(QtGui.QGraphicsItem):
         """Add the output information of the item in to the result."""
         if not self.onSurface():
             return
-        pos = self.pos()
+        pos = self.pos() - self.parentItem().corner
         out_pos = (pos.x()/self.XSIZE * output.X_SCALE +
                   pos.y()/self.YSIZE * output.Y_SCALE)
         if self.left_status == self.NORMAL:
@@ -44,12 +44,20 @@ class Hydrogen(QtGui.QGraphicsItem):
             result.append("%-4s %-10f %-10f %-10f %d" %
                     (("HE",) + tuple(right_pos) + ((len(result) + 1),)))
 
+    def getSaveState(self):
+        """Return the state of the item without Qt bindings."""
+        return SaveHydrogen(self)
+
     def onSurface(self):
         """Check if the item is on the surface."""
         if self.parentItem().collidesWithItem(self):
             return True
         else:
             return False
+
+    def reset(self):
+        self.left_status = Hydrogen.NORMAL
+        self.right_status = Hydrogen.NORMAL
 
     def addContextActions(self, menu):
         """Add item specific context actions to the menu."""
@@ -116,3 +124,17 @@ class Hydrogen(QtGui.QGraphicsItem):
                 else:
                     item_to_paint.right_status = self.scene().painting_status
                 item_to_paint.update()
+
+
+class SaveHydrogen(object):
+
+    def __init__(self, hydrogen):
+        self.x = hydrogen.x()
+        self.y = hydrogen.y()
+        self.left_status = hydrogen.left_status
+        self.right_status = hydrogen.right_status
+
+    def load(self, surface):
+        hydrogen = Hydrogen(self.x, self.y, surface)
+        hydrogen.left_status = self.left_status
+        hydrogen.right_status = self.right_status

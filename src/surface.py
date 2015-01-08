@@ -18,10 +18,17 @@ TOPLB = 8
 class Surface(QtGui.QGraphicsItem):
 
     def __init__(self, scene):
-        self.size = QtCore.QSizeF(20 * Hydrogen.XSIZE, 40 * Hydrogen.YSIZE)
         super(Surface, self).__init__(scene=scene)
-        self.corner = QtCore.QPointF(-10 * Hydrogen.XSIZE, -20 * Hydrogen.YSIZE)
-        self.populate()
+        self.size = None
+        self.corner = None
+
+    @classmethod
+    def create(cls, scene):
+        surface = cls(scene)
+        surface.size = QtCore.QSizeF(20 * Hydrogen.XSIZE, 40 * Hydrogen.YSIZE)
+        surface.corner = QtCore.QPointF(-10 * Hydrogen.XSIZE, -20 * Hydrogen.YSIZE)
+        surface.populate()
+        return surface
 
     def addHydrogen(self, x, y):
         """Add a hydrogen pair on to the surface at (x,y)."""
@@ -121,6 +128,12 @@ class Surface(QtGui.QGraphicsItem):
             item.getOutput(result)
         return result
 
+    def getSaveState(self):
+        return SaveSurface(self)
+
+    def reset(self):
+        pass
+
     def addContextActions(self, menu):
         """Add item specific context actions in to the menu."""
         pass
@@ -130,6 +143,14 @@ class Surface(QtGui.QGraphicsItem):
         painter.setPen(QtGui.QColor(0, 0, 0))
         painter.setBrush(QtGui.QColor(48, 48, 122))
         painter.drawRect(self.boundingRect())
+
+    def width(self):
+        """Return the width of the surface."""
+        return self.sceneBoundingRect().width()
+
+    def height(self):
+        """Return the height of the surface."""
+        return self.sceneBoundingRect().height()
 
     def left(self):
         """Return the x value of the left border."""
@@ -174,3 +195,23 @@ class Surface(QtGui.QGraphicsItem):
         rect.setBottom(value)
         self.corner = rect.topLeft()
         self.size = rect.size()
+
+
+class SaveSurface(object):
+
+    def __init__(self, surface):
+        self.x = surface.corner.x()
+        self.y = surface.corner.y()
+        self.width = surface.width()
+        self.height = surface.height()
+        self.child_items = []
+        for child in surface.childItems():
+            self.child_items.append(child.getSaveState())
+
+    def load(self, scene):
+        surface = Surface(scene)
+        surface.corner = QtCore.QPointF(self.x, self.y)
+        surface.size = QtCore.QSizeF(self.width, self.height)
+        scene.surface = surface
+        for child in self.child_items:
+            child.load(surface)

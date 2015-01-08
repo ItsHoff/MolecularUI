@@ -37,7 +37,7 @@ class Contact(QtGui.QGraphicsItem):
         """Add the output data of the contact in to the results if it is
         on the surface."""
         if self.onSurface():
-            pos = self.pos() - self.scene().surface.topLeft()
+            pos = self.pos() - self.parentItem().corner
             out_pos = 1.0*pos.x()/Hydrogen.XSIZE * output.X_SCALE
             out_pos += 1.0*pos.y()/Hydrogen.YSIZE * output.Y_SCALE
             translation = 0.5*output.X_SCALE + output.Y_SCALE + output.HEIGHT
@@ -54,12 +54,19 @@ class Contact(QtGui.QGraphicsItem):
                         result.append("%-4s %-10f %-10f %-10f %d" %
                             ((split[0],) + tuple(atom_pos) + ((len(result) + 1),)))
 
+    def getSaveState(self):
+        """Return the state of the item without Qt bindings."""
+        return SaveContact(self)
+
     def onSurface(self):
         """Check if the item is on the surface."""
         if self.parentItem().collidesWithItem(self):
             return True
         else:
             return False
+
+    def reset(self):
+        self.scene().removeItem(self)
 
     def addContextActions(self, menu):
         """Add item specific context actions to the menu."""
@@ -113,3 +120,15 @@ class Contact(QtGui.QGraphicsItem):
             self.scene().updateMovingSceneRect()
             self.scene().views()[0].autoScroll(event.scenePos())
             self.scene().update()
+
+
+class SaveContact(object):
+
+    def __init__(self, contact):
+        self.x = contact.x()
+        self.y = contact.y()
+        self.rotation = contact.rotation()
+
+    def load(self, surface):
+        contact = Contact(self.x, self.y, surface)
+        contact.setRotation(self.rotation)

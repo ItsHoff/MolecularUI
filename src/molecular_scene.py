@@ -20,8 +20,7 @@ class MolecularScene(QtGui.QGraphicsScene):
     def __init__(self, tree_widget, parent=None):
         super(MolecularScene, self).__init__(parent)
         self.tree_widget = tree_widget
-        self.surface = Surface(self)
-        self.molecules = []
+        self.surface = Surface.create(self)
         self.selection_box = None
         self.drag_border = None
         self.painting_status = None
@@ -87,6 +86,10 @@ class MolecularScene(QtGui.QGraphicsScene):
                 item.reset()
             status_bar.showMessage("Reset", 3000)
             self.update()
+
+    def clearAll(self):
+        """Remove everything from the scene."""
+        self.removeItem(self.surface)
 
     def drawBackground(self, qp, rect):
         """Draw the background white and call a grid draw"""
