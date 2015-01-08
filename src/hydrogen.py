@@ -1,10 +1,9 @@
 
 from PyQt4 import QtGui, QtCore
 
-from ui_circuit import UICircuit
 import output
 
-class Hydrogen(UICircuit):
+class Hydrogen(QtGui.QGraphicsItem):
 
     XSIZE = 50
     YSIZE = 25
@@ -21,17 +20,21 @@ class Hydrogen(UICircuit):
     VACANT_COLOR = QtGui.QColor(43, 143, 141)
 
     def __init__(self, x, y, parent):
-        self.xsize = self.XSIZE
-        self.ysize = self.YSIZE
+        self.xsize = Hydrogen.XSIZE
+        self.ysize = Hydrogen.YSIZE
+        super(Hydrogen, self).__init__(parent)
+        self.setX(x)
+        self.setY(y)
         self.right_status = self.NORMAL
         self.left_status = self.NORMAL
-        super(Hydrogen, self).__init__(x, y, parent)
 
     def getOutput(self, result):
+        """Add the output information of the item in to the result."""
         if not self.onSurface():
             return
         pos = self.pos()
-        out_pos = pos.x()/self.XSIZE * output.X_SCALE + pos.y()/self.YSIZE * output.Y_SCALE
+        out_pos = (pos.x()/self.XSIZE * output.X_SCALE +
+                  pos.y()/self.YSIZE * output.Y_SCALE)
         if self.left_status == self.NORMAL:
             left_pos = out_pos + output.LEFT_H_POS * output.TOTAL_SCALE
             result.append("%-4s %-10f %-10f %-10f %d" %
@@ -42,16 +45,24 @@ class Hydrogen(UICircuit):
                     (("HE",) + tuple(right_pos) + ((len(result) + 1),)))
 
     def onSurface(self):
-        if self.parentItem().contains(self.scenePos()):
+        """Check if the item is on the surface."""
+        if self.parentItem().collidesWithItem(self):
             return True
         else:
             return False
 
+    def addContextActions(self, menu):
+        """Add item specific context actions to the menu."""
+        pass
+
+    def boundingRect(self):
+        """Return the bounding rectangle of the item."""
+        return QtCore.QRectF(0, 0, self.xsize, self.ysize)
+
     def paint(self, painter, options, widget):
-        """Paint the circuit. Called automatically by the scene."""
+        """Paint the item if its on the surface."""
         if not self.onSurface():
             return
-        # painter.setBrush(QtGui.QColor(100, 100, 100))
         pen = QtGui.QPen(QtGui.QColor(0, 0, 0))
         pen.setWidth(1)
         painter.setPen(pen)
@@ -70,10 +81,7 @@ class Hydrogen(UICircuit):
             painter.drawEllipse(self.RIGHT_RECT)
 
     def mousePressEvent(self, event):
-        """If left mouse button is pressed down start dragging
-        the circuit. Toggle the circuit selection with control click.
-        """
-        print "press"
+        """Toggle the state of the hydrogen when clicked."""
         if event.button() == QtCore.Qt.LeftButton:
             if event.pos().x() < self.xsize/2:
                 if self.left_status == self.NORMAL:
@@ -92,25 +100,19 @@ class Hydrogen(UICircuit):
             self.update()
 
     def mouseReleaseEvent(self, event):
-        """End drag when mouse is released."""
-        if event.button() == QtCore.Qt.LeftButton:
-            self.dragged = False
-            self.scene().painting_status = None
-            self.scene().views()[0].scroll_dir = None
-            self.ensureVisible()
-            self.scene().updateSceneRect()
+        """Reset all the flags possibly set by other mouse events."""
+        self.scene().painting_status = None
 
     def mouseMoveEvent(self, event):
-        """If circuit is being dragged try to set the circuits
-        positions to the mouse position. Circuit will be
-        snapping to 100x100 grid.
+        """If were painting the hydrogen, try to set the state of the hydrogen
+        under the mouse to the one given by the scene painting_status.
         """
         if self.scene().painting_status is not None:
             item_to_paint = self.scene().itemAt(event.scenePos())
             if item_to_paint is not None:
                 pos = item_to_paint.mapFromScene(event.scenePos())
                 if pos.x() < item_to_paint.xsize/2:
-                    item_to_paint.left_status = item_to_paint.scene().painting_status
+                    item_to_paint.left_status = self.scene().painting_status
                 else:
-                    item_to_paint.right_status = item_to_paint.scene().painting_status
+                    item_to_paint.right_status = self.scene().painting_status
                 item_to_paint.update()

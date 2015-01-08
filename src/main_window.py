@@ -1,12 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-'''
-Created on Jun 6, 2014
-
-@author: keisano1
-'''
-
 import sys
 import cPickle as pickle
 
@@ -17,8 +8,8 @@ for api_name in API_NAMES:
     sip.setapi(api_name, API_VERSION)
 from PyQt4 import QtGui, QtCore
 
-from machine_widget import MachineWidget
-from machine_view import MachineView
+from molecular_view import MolecularView
+from molecular_scene import MolecularScene
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -69,12 +60,10 @@ class MainWindow(QtGui.QMainWindow):
         self.statusBar().showMessage("Ready!", 2000)
 
     def save(self):
-        """Get the save state of the program and save it to the users choice
-        of location.
-        """
+        """Get the save state of the program and save it to the location
+        returned from the file dialog."""
         self.statusBar().showMessage("Creating save state...", 10000)
         save_state = SaveState.create(self)
-        # save_state.create(self)
         save_file = QtGui.QFileDialog().getSaveFileName(self, "Save Setup", "../saves")
         if save_file:
             with open(save_file, "w") as f:
@@ -86,10 +75,8 @@ class MainWindow(QtGui.QMainWindow):
     def saveSelected(self):
         """Save the setup currently selected."""
         self.statusBar().showMessage("Creating save state...", 10000)
-        save_state = SaveState()
-        save_state.createFromSelected(self)
-        save_file = QtGui.QFileDialog().getSaveFileName(self, "Save Selected",
-                                                        "../saves")
+        save_state = SaveState.createFromSelected(self)
+        save_file = QtGui.QFileDialog().getSaveFileName(self, "Save Selected", "../saves")
         if save_file:
             with open(save_file, "w") as f:
                 pickle.dump(save_state, f)
@@ -98,10 +85,9 @@ class MainWindow(QtGui.QMainWindow):
             self.statusBar().showMessage("Creating save state... Failed!", 2000)
 
     def load(self):
-        """Load the save state of users choice."""
+        """Load the save state selected by the user."""
         self.statusBar().showMessage("Loading save state...", 10000)
-        load_file = QtGui.QFileDialog().getOpenFileName(self, "Load Setup",
-                                                        "../saves")
+        load_file = QtGui.QFileDialog().getOpenFileName(self, "Load Setup", "../saves")
         if load_file:
             with open(load_file, "r") as f:
                 save_state = pickle.load(f)
@@ -113,8 +99,7 @@ class MainWindow(QtGui.QMainWindow):
     def insert(self):
         """Insert the save state of users choice into the current setup."""
         self.statusBar().showMessage("Inserting save state...", 10000)
-        load_file = QtGui.QFileDialog().getOpenFileName(self, "Insert Setup",
-                                                        "../saves")
+        load_file = QtGui.QFileDialog().getOpenFileName(self, "Insert Setup", "../saves")
         if load_file:
             with open(load_file, "r") as f:
                 save_state = pickle.load(f)
@@ -131,11 +116,6 @@ class MainWidget(QtGui.QWidget):
 
     def __init__(self):
         super(MainWidget, self).__init__()
-        self.machine_widget = None
-        self.initWidget()
-
-    def initWidget(self):
-        """Initialize the graphical elements of the main widget"""
         # Set up the left area of the UI
         left_area = QtGui.QVBoxLayout()
 
@@ -160,9 +140,9 @@ class MainWidget(QtGui.QWidget):
         self.loadCircuits(tree_widget)
 
         # Set up the graphics view for the machine and set the scene
-        graphics_view = MachineView()
-        self.machine_widget = MachineWidget(tree_widget, graphics_view)
-        graphics_view.setScene(self.machine_widget)
+        graphics_view = MolecularView()
+        self.graphics_scene = MolecularScene(tree_widget, graphics_view)
+        graphics_view.setScene(self.graphics_scene)
 
         # Add widgets to the corresponding layouts
         left_area.addLayout(button_grid)
@@ -189,14 +169,14 @@ class MainWidget(QtGui.QWidget):
         sub_item.setText(0, "Contact")
 
     def createOutput(self):
-        """Create pyvafm script from the current machine state."""
+        """Create a output file from the current state of the scene."""
         status_bar = self.window().statusBar()
         status_bar.showMessage("Creating script...", 10000)
         savefile = QtGui.QFileDialog.getSaveFileName(self, "Save output", "../output")
         if not savefile:
             status_bar.showMessage("Creating script... Failed!", 2000)
             return
-        result = self.machine_widget.getOutput()
+        result = self.graphics_scene.getOutput()
         # Write all the lines to the savefile
         with open(savefile, 'w') as out:
             out.write(str(len(result)))
@@ -257,7 +237,6 @@ class SaveState(object):
         """Clean the references to the loaded items from save states."""
         for item in machine_widget.items:
             item.getSaveState()
-
 
 
 def main():

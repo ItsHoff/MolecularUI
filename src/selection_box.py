@@ -1,5 +1,3 @@
-"""Module containing a simple selection box."""
-
 from PyQt4 import QtGui, QtCore
 
 

@@ -3,11 +3,10 @@ import math
 from PyQt4 import QtCore, QtGui
 import numpy as np
 
-from ui_circuit import UICircuit
 from hydrogen import Hydrogen
 import output
 
-class Contact(UICircuit):
+class Contact(QtGui.QGraphicsItem):
 
     XSIZE = 3*Hydrogen.XSIZE
     YSIZE = 4*Hydrogen.YSIZE
@@ -23,8 +22,10 @@ class Contact(UICircuit):
     PATH.arcTo(XSIZE - 20, 0, 20, 20, 0, 90)
     PATH.closeSubpath()
 
-    def __init__(self, x, y):
-        super(Contact, self).__init__(x, y)
+    def __init__(self, x, y, parent=None):
+        super(Contact, self).__init__(parent)
+        self.setX(x)
+        self.setY(y)
         self.xsize = self.XSIZE
         self.ysize = self.YSIZE
         self.dragged = False
@@ -33,6 +34,8 @@ class Contact(UICircuit):
         self.setTransformOriginPoint(50, 50)
 
     def getOutput(self, result):
+        """Add the output data of the contact in to the results if it is
+        on the surface."""
         if self.onSurface():
             pos = self.pos() - self.scene().surface.topLeft()
             out_pos = 1.0*pos.x()/Hydrogen.XSIZE * output.X_SCALE
@@ -52,13 +55,22 @@ class Contact(UICircuit):
                             ((split[0],) + tuple(atom_pos) + ((len(result) + 1),)))
 
     def onSurface(self):
-        bounding_rect = self.sceneTransform().mapRect(self.boundingRect())
-        if self.scene().surface.intersects(bounding_rect):
+        """Check if the item is on the surface."""
+        if self.parentItem().collidesWithItem(self):
             return True
         else:
             return False
 
+    def addContextActions(self, menu):
+        """Add item specific context actions to the menu."""
+        pass
+
+    def boundingRect(self):
+        """Return the bounding rectangle of the item."""
+        return QtCore.QRectF(0, 0, self.xsize, self.ysize)
+
     def paint(self, painter, options, widget):
+        """Draw the item if it is on the surface."""
         if self.onSurface():
             painter.setBrush(QtGui.QColor(241, 231, 65))
             painter.setPen(QtGui.QColor(0, 0, 0))
@@ -66,7 +78,7 @@ class Contact(UICircuit):
 
     def mousePressEvent(self, event):
         """If left mouse button is pressed down start dragging
-        the circuit. Toggle the circuit selection with control click.
+        the item. Rotate the item if middle button is pressed.
         """
         if event.button() == QtCore.Qt.LeftButton:
             self.dragged = True
@@ -83,9 +95,8 @@ class Contact(UICircuit):
             self.scene().updateSceneRect()
 
     def mouseMoveEvent(self, event):
-        """If circuit is being dragged try to set the circuits
-        positions to the mouse position. Circuit will be
-        snapping to 100x100 grid.
+        """If circuit is being dragged try to set the item position
+        to the mouse position.
         """
         if self.dragged:
             old_pos = self.pos()

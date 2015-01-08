@@ -1,9 +1,3 @@
-'''
-Created on Jun 16, 2014
-
-@author: keisano1
-'''
-
 from PyQt4 import QtGui, QtCore
 
 SCROLL_DISTANCE = 50
@@ -14,14 +8,12 @@ LEFT = 2
 RIGHT = 3
 
 
-class MachineView(QtGui.QGraphicsView):
-    """Graphics view that is used to show the contents of the
-    machine_widget scene.
-    """
+class MolecularView(QtGui.QGraphicsView):
+    """Graphics view that is used to show the contents of the main scene."""
 
     def __init__(self):
-        """Call super and set the default flags and parameters."""
-        super(MachineView, self).__init__()
+        """Initialize the base class and set the default flags and parameters."""
+        super(MolecularView, self).__init__()
         self.setAcceptDrops(True)
         self.panning = False
         self.mouse_pos = None
@@ -36,7 +28,6 @@ class MachineView(QtGui.QGraphicsView):
                                  self.scrollTimeOut)
 
         self.setRenderHint(QtGui.QPainter.Antialiasing, True)
-        # self.setRenderHint(QtGui.QPainter.SmoothPixmapTransform, True)
 
     def autoScroll(self, point):
         """Check if the point is close to an edge and set the scroll direction
@@ -83,7 +74,7 @@ class MachineView(QtGui.QGraphicsView):
 
     def mousePressEvent(self, event):
         """Start panning the scene if middle mouse button is pressed."""
-        super(MachineView, self).mousePressEvent(event)
+        super(MolecularView, self).mousePressEvent(event)
         if (event.button() == QtCore.Qt.MiddleButton    or
                (event.button() == QtCore.Qt.LeftButton  and
                 event.modifiers() & QtCore.Qt.ControlModifier)):
@@ -92,7 +83,7 @@ class MachineView(QtGui.QGraphicsView):
 
     def mouseReleaseEvent(self, event):
         """Stop panning if middle mouse button is released."""
-        super(MachineView, self).mouseReleaseEvent(event)
+        super(MolecularView, self).mouseReleaseEvent(event)
         self.panning = False
         self.mouse_pos = None
 
@@ -100,7 +91,7 @@ class MachineView(QtGui.QGraphicsView):
         """If user is panning, move the scene based on the
         movement of the mouse.
         """
-        super(MachineView, self).mouseMoveEvent(event)
+        super(MolecularView, self).mouseMoveEvent(event)
         if self.panning:
             diff = event.pos() - self.mouse_pos
             self.mouse_pos = event.pos()
