@@ -3,6 +3,7 @@ import numpy as np
 
 from surface import Surface
 from hydrogen import Hydrogen
+from contact import Contact
 
 TOPB = 1
 TOPRB = 2
@@ -150,13 +151,10 @@ class MolecularScene(QtGui.QGraphicsScene):
         """Handle all the possible mouse presses for the scene and pass
         the event forward if its not handled by the scene.
         """
-        if (event.modifiers() & QtCore.Qt.ShiftModifier and
-                event.button() == QtCore.Qt.LeftButton):
-            event.accept()
-            self.addClickedCircuit(event.scenePos())
-        elif (event.button() == QtCore.Qt.LeftButton and
+        if (event.button() == QtCore.Qt.LeftButton and
               not self.surface.contains(event.scenePos()) and
-              not event.modifiers() & QtCore.Qt.ControlModifier):
+              not event.modifiers() & QtCore.Qt.ControlModifier and
+              not isinstance(self.itemAt(event.scenePos()), Contact)):
             self.drag_border = self.checkBorder(event.scenePos())
         else:
             super(MolecularScene, self).mousePressEvent(event)

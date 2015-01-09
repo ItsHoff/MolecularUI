@@ -24,8 +24,8 @@ class Contact(QtGui.QGraphicsItem):
 
     def __init__(self, x, y, parent=None):
         super(Contact, self).__init__(parent)
-        self.setX(x)
-        self.setY(y)
+        self.setX(x - x % 25)
+        self.setY(y - y % 25)
         self.xsize = self.XSIZE
         self.ysize = self.YSIZE
         self.dragged = False
@@ -60,12 +60,40 @@ class Contact(QtGui.QGraphicsItem):
 
     def onSurface(self):
         """Check if the item is on the surface."""
-        if self.parentItem().collidesWithItem(self):
+        if self.collidesWithItem(self.parentItem()):
             return True
         else:
             return False
 
+    def collidesWithContacts(self):
+        """Check if the contact collides with other contacts."""
+        for item in self.collidingItems():
+            if isinstance(item, Contact):
+                return True
+        return False
+
+    def resolveCollisions(self):
+        """Tries to resolve collisions by moving the item."""
+        pos = self.pos()
+        for i in range(10):
+            self.setPos(pos.x(), pos.y() + i*25)
+            if self.onSurface() and not self.collidesWithContacts():
+                return True
+            self.setPos(pos.x(), pos.y() - i*25)
+            if self.onSurface() and not self.collidesWithContacts():
+                return True
+            self.setPos(pos.x() + i*25, pos.y())
+            if self.onSurface() and not self.collidesWithContacts():
+                return True
+            self.setPos(pos.x() - i*25, pos.y())
+            if self.onSurface() and not self.collidesWithContacts():
+                return True
+        self.setPos(pos)
+        return False
+
+
     def reset(self):
+        """Reset the item state to scene defaults."""
         self.scene().removeItem(self)
 
     def addContextActions(self, menu):
@@ -75,6 +103,10 @@ class Contact(QtGui.QGraphicsItem):
     def boundingRect(self):
         """Return the bounding rectangle of the item."""
         return QtCore.QRectF(0, 0, self.xsize, self.ysize)
+
+    def shape(self):
+        """Return the shape of the item."""
+        return Contact.PATH
 
     def paint(self, painter, options, widget):
         """Draw the item if it is on the surface."""
@@ -91,6 +123,10 @@ class Contact(QtGui.QGraphicsItem):
             self.dragged = True
         elif event.button() == QtCore.Qt.MidButton:
             self.setRotation(self.rotation() + 90)
+            if not self.resolveCollisions():
+                status_bar = self.scene().views()[0].window().statusBar()
+                status_bar.showMessage("Item couldn't be rotated.", 3000)
+                self.setRotation(self.rotation() - 90)
 
     def mouseReleaseEvent(self, event):
         """End drag when mouse is released."""
@@ -111,12 +147,8 @@ class Contact(QtGui.QGraphicsItem):
             pos.setX(pos.x() - pos.x() % 25)
             pos.setY(pos.y() - pos.y() % 25)
             self.setPos(pos)
-            # Relay the movement to all other selected circuits
-            if self.isSelected() and self.pos() != old_pos:
+            if not self.onSurface() or self.collidesWithContacts():
                 self.setPos(old_pos)
-                self.scene().moveSelected(pos - old_pos)
-            # Update the connections since some of them might
-            # have to be moved with the circuit.
             self.scene().updateMovingSceneRect()
             self.scene().views()[0].autoScroll(event.scenePos())
             self.scene().update()

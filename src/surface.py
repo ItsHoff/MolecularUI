@@ -37,7 +37,11 @@ class Surface(QtGui.QGraphicsItem):
 
     def addDroppedItem(self, pos):
         """Add a item dropped in to the scene on to the surface."""
-        Contact(pos.x(), pos.y(), self)
+        contact = Contact(pos.x(), pos.y(), self)
+        if not contact.resolveCollisions():
+            self.scene().removeItem(contact)
+            status_bar = self.scene().views()[0].window().statusBar()
+            status_bar.showMessage("Item couldn't be added there.", 3000)
 
     def boundingRect(self):
         """Return the bounding rectangle of the surface."""
@@ -104,6 +108,13 @@ class Surface(QtGui.QGraphicsItem):
                 elif pos.y() > self.bottom() + Hydrogen.YSIZE:
                     self.setBottom(pos.y() - pos.y() % Hydrogen.YSIZE)
                     self.populateHorizontalLines(old_rect.bottom(), self.bottom())
+        # Ignore the changes if contacts are outside of the new surface
+        for item in self.childItems():
+            if isinstance(item, Contact):
+                if not item.onSurface():
+                    self.size = old_rect.size()
+                    self.corner = old_rect.topLeft()
+                    return False
 
     def getOutput(self):
         """Get the output information of the surface and its child items."""
