@@ -4,6 +4,7 @@ import numpy as np
 from hydrogen import Hydrogen
 from contact import Contact
 import output
+import molecular_scene
 
 TOPB = 1
 TOPRB = 2
@@ -152,7 +153,10 @@ class Surface(QtGui.QGraphicsItem):
     def paint(self, painter, options, widget):
         """Draw the surface."""
         painter.setPen(QtGui.QColor(0, 0, 0))
-        painter.setBrush(QtGui.QColor(48, 48, 122))
+        if self.scene().paint_mode == molecular_scene.PAINT_ALL:
+            painter.setBrush(QtGui.QColor(48, 48, 122))
+        else:
+            painter.setBrush(QtGui.QColor(68, 68, 142))
         painter.drawRect(self.boundingRect())
 
     def width(self):

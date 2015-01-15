@@ -2,6 +2,7 @@
 from PyQt4 import QtGui, QtCore
 
 import output
+import molecular_scene
 
 class Hydrogen(QtGui.QGraphicsItem):
 
@@ -90,7 +91,8 @@ class Hydrogen(QtGui.QGraphicsItem):
 
     def mousePressEvent(self, event):
         """Toggle the state of the hydrogen when clicked."""
-        if event.button() == QtCore.Qt.LeftButton:
+        if (event.button() == QtCore.Qt.LeftButton and
+           not event.modifiers() & QtCore.Qt.ControlModifier):
             if event.pos().x() < self.xsize/2:
                 if self.left_status == self.NORMAL:
                     self.left_status = self.VACANT
@@ -116,8 +118,15 @@ class Hydrogen(QtGui.QGraphicsItem):
         under the mouse to the one given by the scene painting_status.
         """
         if self.scene().painting_status is not None:
-            item_to_paint = self.scene().itemAt(event.scenePos())
-            if item_to_paint is not None:
+            if self.scene().paint_mode == molecular_scene.PAINT_SURFACE_ONLY:
+                item_to_paint = None
+                for item in self.scene().items(event.scenePos()):
+                    if isinstance(item, Hydrogen):
+                        item_to_paint = item
+                        break
+            else:
+                item_to_paint = self.scene().itemAt(event.scenePos())
+            if isinstance(item_to_paint, Hydrogen):
                 pos = item_to_paint.mapFromScene(event.scenePos())
                 if pos.x() < item_to_paint.xsize/2:
                     item_to_paint.left_status = self.scene().painting_status

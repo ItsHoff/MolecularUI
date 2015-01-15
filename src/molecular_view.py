@@ -1,5 +1,7 @@
 from PyQt4 import QtGui, QtCore
 
+import molecular_scene
+
 SCROLL_DISTANCE = 50
 SCROLL_SPEED = 20
 UP = 0
@@ -63,14 +65,21 @@ class MolecularView(QtGui.QGraphicsView):
 
     def wheelEvent(self, event):
         """Scale the view when wheel is scrolled."""
-        self.setTransformationAnchor(self.AnchorUnderMouse)
-        factor = 1 + 0.1* abs(event.delta()/120.0)
-        if event.delta() < 0:
-            factor = 1.0/factor
-        if (self.scale_factor*factor > self.min_factor and
-                self.scale_factor*factor < self.max_factor):
-            self.scale_factor *= factor
-            self.scale(factor, factor)
+        if event.modifiers() == QtCore.Qt.ControlModifier:
+            if event.delta() < 0:
+                self.scene().paint_mode = molecular_scene.PAINT_ALL
+            else:
+                self.scene().paint_mode = molecular_scene.PAINT_SURFACE_ONLY
+            self.scene().update()
+        else:
+            self.setTransformationAnchor(self.AnchorUnderMouse)
+            factor = 1 + 0.1* abs(event.delta()/120.0)
+            if event.delta() < 0:
+                factor = 1.0/factor
+            if (self.scale_factor*factor > self.min_factor and
+                    self.scale_factor*factor < self.max_factor):
+                self.scale_factor *= factor
+                self.scale(factor, factor)
 
     def mousePressEvent(self, event):
         """Start panning the scene if middle mouse button is pressed."""

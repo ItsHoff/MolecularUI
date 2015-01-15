@@ -14,6 +14,9 @@ BOTTOMLB = 6
 LEFTB = 7
 TOPLB = 8
 
+PAINT_ALL = 1
+PAINT_SURFACE_ONLY = 2
+
 
 class MolecularScene(QtGui.QGraphicsScene):
     """Scene displaying the current state of the circuit."""
@@ -26,6 +29,7 @@ class MolecularScene(QtGui.QGraphicsScene):
         self.drag_border = None
         self.painting_status = None
         self.saved_selections = [None]*10
+        self.paint_mode = PAINT_ALL
         self.updateSceneRect()
         self.update()
 
@@ -232,11 +236,14 @@ class MolecularScene(QtGui.QGraphicsScene):
 
     def contextMenuEvent(self, event):
         """Create a new context menu and open it under mouse"""
-        self.views()[0].scroll_dir = None
-        menu = QtGui.QMenu()
-        # Insert actions to the menu from all the items under the mouse
-        for item in self.items(event.scenePos()):
-            item.addContextActions(menu)
-        self.addContextActions(menu)
-        # Show the menu under mouse
-        menu.exec_(event.screenPos())
+        if event.modifiers() == QtCore.Qt.NoModifier:
+            self.views()[0].scroll_dir = None
+            menu = QtGui.QMenu()
+            # Insert actions to the menu from all the items under the mouse
+            for item in self.items(event.scenePos()):
+                item.addContextActions(menu)
+            self.addContextActions(menu)
+            # Show the menu under mouse
+            menu.exec_(event.screenPos())
+        else:
+            super(MolecularScene, self).contextMenuEvent(event)

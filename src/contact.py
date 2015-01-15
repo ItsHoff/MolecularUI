@@ -5,6 +5,7 @@ import numpy as np
 
 from hydrogen import Hydrogen
 import output
+import molecular_scene
 
 class Contact(QtGui.QGraphicsItem):
 
@@ -91,7 +92,6 @@ class Contact(QtGui.QGraphicsItem):
         self.setPos(pos)
         return False
 
-
     def reset(self):
         """Reset the item state to scene defaults."""
         self.scene().removeItem(self)
@@ -110,18 +110,25 @@ class Contact(QtGui.QGraphicsItem):
 
     def paint(self, painter, options, widget):
         """Draw the item if it is on the surface."""
-        if self.onSurface():
-            painter.setBrush(QtGui.QColor(241, 231, 65))
-            painter.setPen(QtGui.QColor(0, 0, 0))
-            painter.drawPath(self.PATH)
+        if self.scene().paint_mode == molecular_scene.PAINT_ALL:
+            if self.onSurface():
+                painter.setBrush(QtGui.QColor(241, 231, 65))
+                painter.setPen(QtGui.QColor(0, 0, 0))
+                painter.drawPath(self.PATH)
 
     def mousePressEvent(self, event):
         """If left mouse button is pressed down start dragging
         the item. Rotate the item if middle button is pressed.
         """
-        if event.button() == QtCore.Qt.LeftButton:
+        if (event.button() == QtCore.Qt.LeftButton and
+           self.scene().paint_mode != molecular_scene.PAINT_SURFACE_ONLY):
             self.dragged = True
-        elif event.button() == QtCore.Qt.MidButton:
+        else:
+            super(Contact, self).mousePressEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        """Rotate the item on double click."""
+        if event.button() == QtCore.Qt.LeftButton:
             self.setRotation(self.rotation() + 90)
             if not self.resolveCollisions():
                 status_bar = self.scene().views()[0].window().statusBar()
