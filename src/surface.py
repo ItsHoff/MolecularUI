@@ -84,7 +84,7 @@ class Surface(QtGui.QGraphicsItem):
     def resize(self, pos, border):
         """Resize the surface by moving given border to the given position."""
         self.prepareGeometryChange()
-        old_rect = QtCore.QRectF(self.boundingRect())
+        old_rect = QtCore.QRectF(self.corner, self.size)
         if border == LEFTB or border == BOTTOMLB or border == TOPLB:
             if pos.x() < self.right():
                 if pos.x() < self.left() - Hydrogen.XSIZE:
@@ -165,55 +165,49 @@ class Surface(QtGui.QGraphicsItem):
 
     def width(self):
         """Return the width of the surface."""
-        return self.sceneBoundingRect().width()
+        return self.size.width()
 
     def height(self):
         """Return the height of the surface."""
-        return self.sceneBoundingRect().height()
+        return self.size.height()
 
     def left(self):
         """Return the x value of the left border."""
-        return self.sceneBoundingRect().left()
+        return self.corner.x()
 
     def right(self):
         """Return the x value of the right border."""
-        return self.sceneBoundingRect().right()
+        return self.corner.x() + self.size.width()
 
     def top(self):
         """Return the y value of the top border."""
-        return self.sceneBoundingRect().top()
+        return self.corner.y()
 
     def bottom(self):
         """Return the y value of the bottom border."""
-        return self.sceneBoundingRect().bottom()
+        return self.corner.y() + self.size.height()
 
     def setLeft(self, value):
         """Set the x value of the left border."""
-        rect = self.sceneBoundingRect()
-        rect.setLeft(value)
-        self.corner = rect.topLeft()
-        self.size = rect.size()
+        old_left = self.left()
+        self.corner.setX(value)
+        self.size.setWidth(self.width() - value + old_left)
 
     def setRight(self, value):
         """Set the x value of the right border."""
-        rect = self.sceneBoundingRect()
-        rect.setRight(value)
-        self.corner = rect.topLeft()
-        self.size = rect.size()
+        old_right = self.right()
+        self.size.setWidth(self.width() + value - old_right)
 
     def setTop(self, value):
         """Set the y value of the top border."""
-        rect = self.sceneBoundingRect()
-        rect.setTop(value)
-        self.corner = rect.topLeft()
-        self.size = rect.size()
+        old_top = self.top()
+        self.corner.setY(value)
+        self.size.setHeight(self.height() - value + old_top)
 
     def setBottom(self, value):
         """Set the y value of the bottom border."""
-        rect = self.sceneBoundingRect()
-        rect.setBottom(value)
-        self.corner = rect.topLeft()
-        self.size = rect.size()
+        old_bottom = self.bottom()
+        self.size.setHeight(self.height() + value - old_bottom)
 
 
 class SaveSurface(object):

@@ -167,11 +167,17 @@ class MolecularScene(QtGui.QGraphicsScene):
             self.drag_border = self.checkBorder(event.scenePos())
         elif (event.button() == QtCore.Qt.LeftButton and
               event.modifiers() == QtCore.Qt.ShiftModifier and
-              not isinstance(self.itemAt(event.scenePos()).parentItem(), SelectionBox)):
-            self.clearSelection()
+              not self.selectionAt(event.scenePos())):
             self.selection_box = SelectionBox(event.scenePos(), self.surface)
         else:
             super(MolecularScene, self).mousePressEvent(event)
+
+    def selectionAt(self, scene_pos):
+        """Return the selection box at scene pos."""
+        for item in self.items(scene_pos):
+            if isinstance(item, SelectionBox):
+                return item
+        return None
 
     def mouseMoveEvent(self, event):
         """Handle all the mouse movement for the scene and pass the event

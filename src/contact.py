@@ -97,9 +97,20 @@ class Contact(QtGui.QGraphicsItem):
         """Reset the item state to scene defaults."""
         self.scene().removeItem(self)
 
+    def contextRotate(self):
+        """Rotate the contact by 90 degrees."""
+        self.setRotation(self.rotation() + 90)
+
     def addContextActions(self, menu):
         """Add item specific context actions to the menu."""
-        pass
+        rotate = QtGui.QAction("Rotate contact", menu)
+        QtCore.QObject.connect(rotate, QtCore.SIGNAL("triggered()"), self.contextRotate)
+        menu.addAction(rotate)
+
+        remove = QtGui.QAction("Remove contact", menu)
+        QtCore.QObject.connect(remove, QtCore.SIGNAL("triggered()"), self.reset)
+        menu.addAction(remove)
+
 
     def boundingRect(self):
         """Return the bounding rectangle of the item."""

@@ -74,6 +74,22 @@ class Hydrogen(QtGui.QGraphicsItem):
                 return item
         return None
 
+    def copyFromSurface(self):
+        """Copy the state of surface hydrogen to selected hydrogen."""
+        if self.parentItem().parentItem() is not None:
+            surface_hydrogen = self.getStackedHydrogen()
+            self.left_status = surface_hydrogen.left_status
+            self.right_status = surface_hydrogen.right_status
+            surface_hydrogen.reset()
+
+    def copyToSurface(self):
+        """Copy the status of selected hydrogen to surface hydrogen
+        under it."""
+        if self.parentItem().parentItem() is not None:
+            surface_hydrogen = self.getStackedHydrogen()
+            surface_hydrogen.left_status = self.left_status
+            surface_hydrogen.right_status = self.right_status
+
     def reset(self):
         self.left_status = Hydrogen.NORMAL
         self.right_status = Hydrogen.NORMAL
@@ -89,7 +105,7 @@ class Hydrogen(QtGui.QGraphicsItem):
     def shape(self):
         """Return the shape of the item."""
         path = QtGui.QPainterPath()
-        path.addRect(QtCore.QRectF(2, 2, self.xsize - 4, self.ysize - 4))
+        path.addRect(QtCore.QRectF(0.2, 0.2, self.xsize - 0.4, self.ysize - 0.4))
         return path
 
     def paint(self, painter, options, widget):

@@ -31,21 +31,24 @@ class SelectionBox(QtGui.QGraphicsItem):
         """Finalize the selection."""
         self.prepareGeometryChange()
         if self.corner.x() < self.origin.x():
-            self.corner.setX(self.corner.x() - self.corner.x()%Hydrogen.XSIZE)
+            self.corner.setX(self.corner.x() + Hydrogen.XSIZE - self.corner.x()%Hydrogen.XSIZE)
             xmin = self.corner.x()
             xmax = self.origin.x()
         else:
-            self.corner.setX(self.corner.x() + Hydrogen.XSIZE - self.corner.x()%Hydrogen.XSIZE)
+            self.corner.setX(self.corner.x() - self.corner.x()%Hydrogen.XSIZE)
             xmin = self.origin.x()
             xmax = self.corner.x()
         if self.corner.y() < self.origin.y():
-            self.corner.setY(self.corner.y() - self.corner.y()%Hydrogen.YSIZE)
+            self.corner.setY(self.corner.y() + Hydrogen.YSIZE - self.corner.y()%Hydrogen.YSIZE)
             ymin = self.corner.y()
             ymax = self.origin.y()
         else:
-            self.corner.setY(self.corner.y() + Hydrogen.YSIZE - self.corner.y()%Hydrogen.YSIZE)
+            self.corner.setY(self.corner.y() - self.corner.y()%Hydrogen.YSIZE)
             ymin = self.origin.y()
             ymax = self.corner.y()
+        if ymin == ymax or xmin == xmax:
+            self.scene().removeItem(self)
+            return
         self.origin = QtCore.QPointF(xmin, ymin)
         self.setPos(self.origin)
         self.corner = QtCore.QPointF(xmax, ymax)
@@ -59,12 +62,46 @@ class SelectionBox(QtGui.QGraphicsItem):
         while y < self.height() - 2:
             x = 0
             while x < self.width() - 2:
-                Hydrogen(x-x%Hydrogen.XSIZE, y-y%Hydrogen.YSIZE, self)
+                hydrogen = Hydrogen(x-x%Hydrogen.XSIZE, y-y%Hydrogen.YSIZE, self)
+                hydrogen.copyFromSurface()
                 x += Hydrogen.XSIZE
             y += Hydrogen.YSIZE
 
     def addContextActions(self, menu):
-        pass
+        """Add widget specific context actions to the
+        context menu given as parameter.
+        """
+        fill_hydrogen = QtGui.QAction("Fill selected hydrogen", menu)
+        QtCore.QObject.connect(fill_hydrogen, QtCore.SIGNAL("triggered()"), self.fillHydrogen)
+        menu.addAction(fill_hydrogen)
+
+        remove_hydrogen = QtGui.QAction("Remove selected hydrogen", menu)
+        QtCore.QObject.connect(remove_hydrogen, QtCore.SIGNAL("triggered()"), self.removeHydrogen)
+        menu.addAction(remove_hydrogen)
+
+        remove = QtGui.QAction("Remove selection", menu)
+        QtCore.QObject.connect(remove, QtCore.SIGNAL("triggered()"), self.delete)
+        menu.addAction(remove)
+
+    def delete(self):
+        for item in self.childItems():
+            item.copyToSurface()
+        self.scene().removeItem(self)
+
+    def removeHydrogen(self):
+        for item in self.childItems():
+            item.left_status = item.VACANT
+            item.right_status = item.VACANT
+        self.update()
+
+    def fillHydrogen(self):
+        for item in self.childItems():
+            item.left_status = item.NORMAL
+            item.right_status = item.NORMAL
+        self.update()
+
+    def reset(self):
+        self.scene().removeItem(self)
 
     def getOutput(self, result):
         for item in self.childItems():
@@ -115,10 +152,10 @@ class SelectionBox(QtGui.QGraphicsItem):
     def shape(self):
         """Return the shape of the box in item coordinates.
         Make sure that width and height are positive."""
-        w = self.corner.x() - self.origin.x() - 2
-        h = self.corner.y() - self.origin.y() - 2
-        x = min(0, w) + 1
-        y = min(0, h) + 1
+        w = self.corner.x() - self.origin.x() - 0.2
+        h = self.corner.y() - self.origin.y() - 0.2
+        x = min(0, w) + 0.1
+        y = min(0, h) + 0.1
         path = QtGui.QPainterPath()
         path.addRect(QtCore.QRectF(x, y, abs(w), abs(h)))
         return path
