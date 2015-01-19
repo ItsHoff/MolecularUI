@@ -4,6 +4,7 @@ import numpy as np
 from surface import Surface
 from hydrogen import Hydrogen
 from contact import Contact
+from selection_box import SelectionBox
 
 TOPB = 1
 TOPRB = 2
@@ -61,6 +62,10 @@ class MolecularScene(QtGui.QGraphicsScene):
     def getOutput(self):
         """Get the output information from the scene."""
         return self.surface.getOutput()
+
+    def saveSelection(self, key):
+        """Save current selection under key."""
+        self.saved_selections[key] = self.selectedItems()
 
     def addContextActions(self, menu):
         """Add widget specific context actions to the
@@ -160,6 +165,11 @@ class MolecularScene(QtGui.QGraphicsScene):
               not event.modifiers() & QtCore.Qt.ControlModifier and
               not isinstance(self.itemAt(event.scenePos()), Contact)):
             self.drag_border = self.checkBorder(event.scenePos())
+        elif (event.button() == QtCore.Qt.LeftButton and
+              event.modifiers() == QtCore.Qt.ShiftModifier and
+              not isinstance(self.itemAt(event.scenePos()).parentItem(), SelectionBox)):
+            self.clearSelection()
+            self.selection_box = SelectionBox(event.scenePos(), self.surface)
         else:
             super(MolecularScene, self).mousePressEvent(event)
 
@@ -175,15 +185,22 @@ class MolecularScene(QtGui.QGraphicsScene):
             area = QtGui.QPainterPath()
             area.addPolygon(selection_area)
             self.setSelectionArea(area)
-            self.update()
         elif self.drag_border is not None:
             self.views()[0].autoScroll(event.scenePos())
             self.surface.resize(event.scenePos(), self.drag_border)
             self.updateMovingSceneRect()
-            self.update()
         else:
             border = self.checkBorder(event.scenePos())
             self.setCursor(border)
+
+    def handleKeyPress(self, event):
+        pass
+
+    def mapFromGlobal(self, global_pos):
+        """Map a position from global coordinates to scene coordinates."""
+        view = self.views()[0]
+        view_pos = view.mapFromGlobal(global_pos)
+        return view.mapToScene(view_pos)
 
     def setCursor(self, border=None):
         """Set the cursor to the right style depending on the border."""
@@ -233,6 +250,11 @@ class MolecularScene(QtGui.QGraphicsScene):
         self.views()[0].scroll_dir = None
         self.drag_border = None
         self.updateSceneRect()
+        if self.selection_box is not None:
+            if self.selection_box.boundingRect().isValid():
+                self.saveSelection(0)
+            self.selection_box.finalize()
+            self.selection_box = None
 
     def contextMenuEvent(self, event):
         """Create a new context menu and open it under mouse"""
@@ -247,3 +269,23 @@ class MolecularScene(QtGui.QGraphicsScene):
             menu.exec_(event.screenPos())
         else:
             super(MolecularScene, self).contextMenuEvent(event)
+
+    def keyPressEvent(self, event):
+        """Save the current selection with control + number and load the
+        selection with the corresponding number.
+        """
+        zero = QtCore.Qt.Key_0
+        key = event.key()
+        if key >= zero and key <= zero + 9:
+            if event.modifiers() & QtCore.Qt.ControlModifier:
+                self.saveSelection(key-zero)
+            else:
+                self.clearSelection()
+                if self.saved_selections[key-zero] is not None:
+                    bounding_rect = QtCore.QRectF()
+                    for item in self.saved_selections[key-zero]:
+                        rect = item.boundingRect()
+                        rect.moveTo(item.pos())
+                        bounding_rect = bounding_rect.united(rect)
+                        item.setSelected(True)
+                    self.views()[0].ensureVisible(bounding_rect, 0, 0)

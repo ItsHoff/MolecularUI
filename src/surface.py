@@ -33,7 +33,9 @@ class Surface(QtGui.QGraphicsItem):
 
     def addHydrogen(self, x, y):
         """Add a hydrogen pair on to the surface at (x,y)."""
-        if not isinstance(self.scene().itemAt(x, y), Hydrogen):
+        colliding_item = self.scene().itemAt(x, y)
+        if (not isinstance(colliding_item, Hydrogen) or
+           colliding_item.parentItem() is not self):
             Hydrogen(x-x%Hydrogen.XSIZE, y-y%Hydrogen.YSIZE, self)
 
     def addDroppedItem(self, pos):
@@ -46,7 +48,8 @@ class Surface(QtGui.QGraphicsItem):
 
     def boundingRect(self):
         """Return the bounding rectangle of the surface."""
-        return QtCore.QRectF(self.corner, self.size)
+        return QtCore.QRectF(self.corner - QtCore.QPointF(2, 2),
+                             self.size + QtCore.QSizeF(4, 4))
 
     def populate(self):
         """Fill the surface with hydrogen."""
@@ -80,6 +83,7 @@ class Surface(QtGui.QGraphicsItem):
 
     def resize(self, pos, border):
         """Resize the surface by moving given border to the given position."""
+        self.prepareGeometryChange()
         old_rect = QtCore.QRectF(self.boundingRect())
         if border == LEFTB or border == BOTTOMLB or border == TOPLB:
             if pos.x() < self.right():
@@ -157,7 +161,7 @@ class Surface(QtGui.QGraphicsItem):
             painter.setBrush(QtGui.QColor(48, 48, 122))
         else:
             painter.setBrush(QtGui.QColor(68, 68, 142))
-        painter.drawRect(self.boundingRect())
+        painter.drawRect(QtCore.QRectF(self.corner, self.size))
 
     def width(self):
         """Return the width of the surface."""

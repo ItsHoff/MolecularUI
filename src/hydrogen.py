@@ -31,9 +31,12 @@ class Hydrogen(QtGui.QGraphicsItem):
 
     def getOutput(self, result):
         """Add the output information of the item in to the result."""
-        if not self.onSurface():
+        if not self.onSurface() or self.overwritten():
             return
-        pos = self.pos() - self.parentItem().corner
+        if self.parentItem().parentItem() is not None:
+            pos = self.scenePos() - self.parentItem().parentItem().corner
+        else:
+            pos = self.pos() - self.parentItem().corner
         out_pos = (pos.x()/self.XSIZE * output.X_SCALE +
                   pos.y()/self.YSIZE * output.Y_SCALE)
         if self.left_status == self.NORMAL:
@@ -51,10 +54,25 @@ class Hydrogen(QtGui.QGraphicsItem):
 
     def onSurface(self):
         """Check if the item is on the surface."""
-        if self.parentItem().collidesWithItem(self):
+        if self.collidesWithItem(self.parentItem(), QtCore.Qt.ContainsItemShape):
             return True
         else:
             return False
+
+    def overwritten(self):
+        """Check if hydrogen is overwritten by selection box."""
+        if (self.parentItem().parentItem() is None and
+           self.getStackedHydrogen() is not None):
+            return True
+        else:
+            return False
+
+    def getStackedHydrogen(self):
+        """Return the other hydrogen possibly stacked with this one."""
+        for item in self.collidingItems():
+            if isinstance(item, Hydrogen):
+                return item
+        return None
 
     def reset(self):
         self.left_status = Hydrogen.NORMAL
@@ -67,6 +85,12 @@ class Hydrogen(QtGui.QGraphicsItem):
     def boundingRect(self):
         """Return the bounding rectangle of the item."""
         return QtCore.QRectF(0, 0, self.xsize, self.ysize)
+
+    def shape(self):
+        """Return the shape of the item."""
+        path = QtGui.QPainterPath()
+        path.addRect(QtCore.QRectF(2, 2, self.xsize - 4, self.ysize - 4))
+        return path
 
     def paint(self, painter, options, widget):
         """Paint the item if its on the surface."""
@@ -92,7 +116,7 @@ class Hydrogen(QtGui.QGraphicsItem):
     def mousePressEvent(self, event):
         """Toggle the state of the hydrogen when clicked."""
         if (event.button() == QtCore.Qt.LeftButton and
-           not event.modifiers() & QtCore.Qt.ControlModifier):
+           event.modifiers() == QtCore.Qt.NoModifier):
             if event.pos().x() < self.xsize/2:
                 if self.left_status == self.NORMAL:
                     self.left_status = self.VACANT
@@ -108,6 +132,8 @@ class Hydrogen(QtGui.QGraphicsItem):
                     self.right_status = self.NORMAL
                     self.scene().painting_status = self.NORMAL
             self.update()
+        else:
+            super(Hydrogen, self).mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
         """Reset all the flags possibly set by other mouse events."""

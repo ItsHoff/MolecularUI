@@ -30,7 +30,7 @@ class Contact(QtGui.QGraphicsItem):
         self.xsize = self.XSIZE
         self.ysize = self.YSIZE
         self.dragged = False
-        self.setZValue(1)
+        self.setZValue(3)
         self.translate(-25, -25)
         self.setTransformOriginPoint(50, 50)
 
@@ -61,9 +61,10 @@ class Contact(QtGui.QGraphicsItem):
 
     def onSurface(self):
         """Check if the item is on the surface."""
-        if self.collidesWithItem(self.parentItem()):
+        if self.collidesWithItem(self.parentItem(), QtCore.Qt.ContainsItemShape):
             return True
         else:
+            print "not on surface"
             return False
 
     def collidesWithContacts(self):
@@ -151,8 +152,8 @@ class Contact(QtGui.QGraphicsItem):
         if self.dragged:
             old_pos = self.pos()
             pos = event.scenePos()
-            pos.setX(pos.x() - pos.x() % 25)
-            pos.setY(pos.y() - pos.y() % 25)
+            pos.setX(pos.x() - pos.x() % (Hydrogen.XSIZE/2))
+            pos.setY(pos.y() - pos.y() % Hydrogen.YSIZE)
             self.setPos(pos)
             if not self.onSurface() or self.collidesWithContacts():
                 self.setPos(old_pos)

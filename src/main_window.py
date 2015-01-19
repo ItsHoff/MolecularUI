@@ -137,16 +137,16 @@ class MainWidget(QtGui.QWidget):
         self.loadCircuits(tree_widget)
 
         # Set up the graphics view for the machine and set the scene
-        graphics_view = MolecularView()
-        self.graphics_scene = MolecularScene(tree_widget, graphics_view)
-        graphics_view.setScene(self.graphics_scene)
+        self.graphics_view = MolecularView()
+        self.graphics_scene = MolecularScene(tree_widget, self.graphics_view)
+        self.graphics_view.setScene(self.graphics_scene)
 
         # Add widgets to the corresponding layouts
         left_area.addLayout(button_grid)
         left_area.addWidget(tree_widget)
         main_layout = QtGui.QHBoxLayout()
         main_layout.addLayout(left_area)
-        main_layout.addWidget(graphics_view)
+        main_layout.addWidget(self.graphics_view)
         self.setLayout(main_layout)
 
     def loadCircuits(self, tree_widget):
@@ -183,6 +183,11 @@ class MainWidget(QtGui.QWidget):
                 out.write("\n")
         status_bar.showMessage("Creating script... Done!", 2000)
         return savefile
+
+    def keyPressEvent(self, event):
+        """Send all key presses to the graphics scene."""
+        if self.graphics_view.underMouse():
+            self.graphics_scene.handleKeyPress(event)
 
 
 class SaveState(object):
