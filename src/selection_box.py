@@ -140,6 +140,10 @@ class SelectionBox(QtGui.QGraphicsItem):
         self.setPos(pos)
         return False
 
+    def getSaveState(self):
+        """Return the save state of the item."""
+        return SaveSelection(self)
+
     def boundingRect(self):
         """Return the bounding rectangle of the box in item coordinates.
         Make sure that width and height are positive."""
@@ -227,3 +231,23 @@ class SelectionBox(QtGui.QGraphicsItem):
     def bottom(self):
         """Return the y value of the bottom border."""
         return self.sceneBoundingRect().bottom()
+
+
+class SaveSelection(object):
+
+    def __init__(self, selection):
+        self.x = selection.pos().x()
+        self.y = selection.pos().y()
+        self.width = selection.width()
+        self.height = selection.height()
+        self.child_items = []
+        for child in selection.childItems():
+            self.child_items.append(child.getSaveState())
+
+    def load(self, surface):
+        selection = SelectionBox(QtCore.QPointF(self.x, self.y), surface)
+        selection.setCorner(QtCore.QPointF(selection.pos().x() + self.width,
+                                           selection.pos().y() + self.height))
+        selection.size = QtCore.QSizeF(self.width, self.height)
+        for child in self.child_items:
+            child.load(selection)
