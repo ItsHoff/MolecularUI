@@ -168,21 +168,23 @@ class MainWidget(QtGui.QWidget):
     def createOutput(self):
         """Create a output file from the current state of the scene."""
         status_bar = self.window().statusBar()
-        status_bar.showMessage("Creating script...", 10000)
-        savefile = QtGui.QFileDialog.getSaveFileName(self, "Save output", "../output")
-        if not savefile:
-            status_bar.showMessage("Creating script... Failed!", 2000)
+        status_bar.showMessage("Creating output...", 10000)
+        save_file = QtGui.QFileDialog.getSaveFileName(self, "Save output", "../output")
+        if not save_file:
+            status_bar.showMessage("Creating output... Failed!", 2000)
             return
         result = self.graphics_scene.getOutput()
+        if not save_file.endswith(".xyz"):
+            save_file = save_file + ".xyz"
         # Write all the lines to the savefile
-        with open(savefile, 'w') as out:
+        with open(save_file, 'w') as out:
             out.write(str(len(result)))
             out.write("\n\n")
             for line in result:
                 out.write(line)
                 out.write("\n")
-        status_bar.showMessage("Creating script... Done!", 2000)
-        return savefile
+        status_bar.showMessage("Creating output... Done!", 2000)
+        return save_file
 
     def keyPressEvent(self, event):
         """Send all key presses to the graphics scene."""

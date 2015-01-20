@@ -63,6 +63,7 @@ saves/
 .settings/
 examples/
 output/
+test/
 
 # Files to ignore
 tags
