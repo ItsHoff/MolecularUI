@@ -65,6 +65,8 @@ saves/*
 examples/
 output/*
 !output/README
+blocks/*
+!blocks/README
 test/
 
 # Files to ignore

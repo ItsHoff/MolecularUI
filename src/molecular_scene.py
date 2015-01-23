@@ -141,7 +141,7 @@ class MolecularScene(QtGui.QGraphicsScene):
         if event.source() is self.tree_widget:
             event.accept()
             dropped_item = event.source().currentItem()
-            self.surface.addDroppedItem(event.scenePos())
+            self.surface.addDroppedItem(event.scenePos(), dropped_item)
             self.addToRecentlyUsed(dropped_item)
 
     def addToRecentlyUsed(self, tree_item):

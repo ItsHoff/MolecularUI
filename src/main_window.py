@@ -70,15 +70,16 @@ class MainWindow(QtGui.QMainWindow):
         else:
             self.statusBar().showMessage("Creating save state... Failed!", 2000)
 
-    def saveSelected(self):
+    def saveBlock(self, block):
         """Save the setup currently selected."""
         self.statusBar().showMessage("Creating save state...", 10000)
-        save_state = SaveState.createFromSelected(self)
-        save_file = QtGui.QFileDialog().getSaveFileName(self, "Save Selected", "../saves")
+        save_state = block.getSaveState()
+        save_file = QtGui.QFileDialog().getSaveFileName(self, "Save Block", "../blocks")
         if save_file:
             with open(save_file, "w") as f:
                 pickle.dump(save_state, f)
                 self.statusBar().showMessage("Creating save state... Done!", 2000)
+                f.close()
         else:
             self.statusBar().showMessage("Creating save state... Failed!", 2000)
 
@@ -130,12 +131,13 @@ class MainWidget(QtGui.QWidget):
         tree_widget = QtGui.QTreeWidget(self)
         tree_widget.setSizePolicy(QtGui.QSizePolicy.Minimum,
                                   QtGui.QSizePolicy.Expanding)
-        tree_widget.setHeaderLabel("Circuits")
+        tree_widget.setHeaderLabel("Items")
         tree_widget.setDragEnabled(True)
         tree_widget.setFocusPolicy(QtCore.Qt.NoFocus)
 
         # Load the circuits from circuits.py into the tree_widget
-        self.loadCircuits(tree_widget)
+        self.top_items = None
+        self.loadItems(tree_widget)
 
         # Set up the graphics view for the machine and set the scene
         self.graphics_view = MolecularView()
@@ -150,21 +152,51 @@ class MainWidget(QtGui.QWidget):
         main_layout.addWidget(self.graphics_view)
         self.setLayout(main_layout)
 
-    def loadCircuits(self, tree_widget):
-        """Load all the circuits from the circuits file to the tree_widget"""
-        groups = {}
-        top_item = QtGui.QTreeWidgetItem(tree_widget)
-        top_item.setText(0, "Contacts")
-        top_item.setFlags(top_item.flags() & ~QtCore.Qt.ItemIsDragEnabled
-                          & ~QtCore.Qt.ItemIsSelectable)
-        groups["Contacts"] = top_item
-        top_item = QtGui.QTreeWidgetItem(tree_widget)
-        top_item.setText(0, "Recently Used")
-        top_item.setFlags(top_item.flags() & ~QtCore.Qt.ItemIsDragEnabled
-                          & ~QtCore.Qt.ItemIsSelectable)
-        groups["Recently Used"] = top_item
-        sub_item = QtGui.QTreeWidgetItem(groups["Contacts"])
+    def loadItems(self, tree_widget):
+        """Load all the items to the tree_widget"""
+        self.top_items = {}
+        for name in ["Contacts", "Molecules", "Surface Blocks", "Recently Used"]:
+            top_item = QtGui.QTreeWidgetItem(tree_widget)
+            top_item.setText(0, name)
+            top_item.setFlags(top_item.flags() & ~QtCore.Qt.ItemIsDragEnabled
+                            & ~QtCore.Qt.ItemIsSelectable)
+            self.top_items[name] = top_item
+        self.loadContacts()
+        self.loadMolecules()
+        self.loadSurfaceBlocks()
+
+    def loadContacts(self):
+        """Load contacts under the corresponding top item."""
+        sub_item = QtGui.QTreeWidgetItem(self.top_items["Contacts"])
         sub_item.setText(0, "Contact")
+        sub_item.setData(0, QtCore.Qt.UserRole, "CONTACT")
+
+    def loadMolecules(self):
+        """Load molecules under the corresponding top item."""
+        pass
+
+    def loadSurfaceBlocks(self):
+        """Load surface blocks under the corresponding top item."""
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        path = current_dir + "/../blocks/"
+        files = os.listdir(path)
+        for file_name in files:
+            try:
+                load_file = "../blocks/" + file_name
+                with open(load_file, "r") as f:
+                    block = pickle.load(f)
+                    sub_item = QtGui.QTreeWidgetItem(self.top_items["Surface Blocks"])
+                    sub_item.setText(0, file_name)
+                    sub_item.setData(0, QtCore.Qt.UserRole, "BLOCK")
+                    sub_item.setData(0, QtCore.Qt.UserRole+1, block)
+            # The file didn't have proper type
+            except pickle.UnpicklingError:
+                pass
+
+    def updateBlocks(self):
+        """Update the list of available surface blocks."""
+        self.top_items["Surface Blocks"].takeChildren()
+        self.loadSurfaceBlocks()
 
     def createOutput(self):
         """Create a output file from the current state of the scene."""
@@ -207,38 +239,12 @@ class SaveState(object):
         save_state.surface = scene.surface.getSaveState()
         return save_state
 
-    @classmethod
-    def createFromSelected(cls, main_window):
-        """Gather all the data from selected items for saving
-        without Qt bindings.
-        """
-        machine_widget = main_window.centralWidget().machine_widget
-        save_state = cls()
-        for item in machine_widget.selectedItems():
-            save_state.items.append(item.getSaveState())
-        return save_state
-
     def load(self, main_window):
         """Load the save state stored in this object."""
         scene = main_window.centralWidget().graphics_scene
         scene.clearAll()
         self.surface.load(scene)
         scene.updateSceneRect()
-
-    def insert(self, main_window):
-        """Insert the save state into the current setup."""
-        machine_widget = main_window.centralWidget().machine_widget
-        machine_widget.clearSelection()
-        for item in self.items:
-            machine_widget.addLoadedCircuit(item)
-        self.cleanLoadedItems(machine_widget)
-        machine_widget.updateSceneRect()
-        machine_widget.saveSelection(0)
-
-    def cleanLoadedItems(self, machine_widget):
-        """Clean the references to the loaded items from save states."""
-        for item in machine_widget.items:
-            item.getSaveState()
 
 
 def main():

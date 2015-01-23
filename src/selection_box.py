@@ -71,6 +71,10 @@ class SelectionBox(QtGui.QGraphicsItem):
         """Add widget specific context actions to the
         context menu given as parameter.
         """
+        save = QtGui.QAction("Save block", menu)
+        QtCore.QObject.connect(save, QtCore.SIGNAL("triggered()"), self.save)
+        menu.addAction(save)
+
         fill_hydrogen = QtGui.QAction("Fill selected hydrogen", menu)
         QtCore.QObject.connect(fill_hydrogen, QtCore.SIGNAL("triggered()"), self.fillHydrogen)
         menu.addAction(fill_hydrogen)
@@ -84,9 +88,15 @@ class SelectionBox(QtGui.QGraphicsItem):
         menu.addAction(remove)
 
     def delete(self):
+        """Delete the item from the scene."""
         for item in self.childItems():
             item.copyToSurface()
         self.scene().removeItem(self)
+
+    def save(self):
+        """Save the item."""
+        self.scene().views()[0].window().saveBlock(self)
+        self.scene().views()[0].parent().updateBlocks()
 
     def removeHydrogen(self):
         for item in self.childItems():
@@ -240,14 +250,15 @@ class SaveSelection(object):
         self.y = selection.pos().y()
         self.width = selection.width()
         self.height = selection.height()
+        self.corner = selection.corner
         self.child_items = []
         for child in selection.childItems():
             self.child_items.append(child.getSaveState())
 
     def load(self, surface):
         selection = SelectionBox(QtCore.QPointF(self.x, self.y), surface)
-        selection.setCorner(QtCore.QPointF(selection.pos().x() + self.width,
-                                           selection.pos().y() + self.height))
+        selection.corner = self.corner
         selection.size = QtCore.QSizeF(self.width, self.height)
         for child in self.child_items:
             child.load(selection)
+        return selection

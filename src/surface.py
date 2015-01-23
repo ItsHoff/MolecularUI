@@ -38,11 +38,20 @@ class Surface(QtGui.QGraphicsItem):
            colliding_item.parentItem() is not self):
             Hydrogen(x-x%Hydrogen.XSIZE, y-y%Hydrogen.YSIZE, self)
 
-    def addDroppedItem(self, pos):
+    def addDroppedItem(self, pos, dropped_item):
         """Add a item dropped in to the scene on to the surface."""
-        contact = Contact(pos.x(), pos.y(), self)
-        if not contact.resolveCollisions():
-            self.scene().removeItem(contact)
+        data_type = dropped_item.data(0, QtCore.Qt.UserRole)
+        data = dropped_item.data(0, QtCore.Qt.UserRole + 1)
+        if data_type == "CONTACT":
+            new_item = Contact(pos.x(), pos.y(), self)
+        elif data_type == "BLOCK":
+            new_item = data.load(self)
+            new_item.setPos(pos.x() - pos.x()%Hydrogen.XSIZE,
+                            pos.y() - pos.y()%Hydrogen.YSIZE)
+        elif data_type == "MOLECULE":
+            pass
+        if not new_item.resolveCollisions():
+            self.scene().removeItem(new_item)
             status_bar = self.scene().views()[0].window().statusBar()
             status_bar.showMessage("Item couldn't be added there.", 3000)
 
