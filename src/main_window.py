@@ -1,4 +1,5 @@
 import sys
+import os
 
 import cPickle as pickle
 
@@ -242,6 +243,9 @@ class SaveState(object):
 
 def main():
     """Start the program and open the main window."""
+    # Set the working directory to the src folder.
+    src_dir = os.path.dirname(os.path.realpath(__file__))
+    os.chdir(src_dir)
     app = QtGui.QApplication(sys.argv)
     w = MainWindow()
     sys.exit(app.exec_())

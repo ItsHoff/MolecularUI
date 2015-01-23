@@ -125,7 +125,7 @@ class Surface(QtGui.QGraphicsItem):
         """Get the output information of the surface and its child items."""
         result = []
         base_translation = output.LEFT_H_POS * output.TOTAL_SCALE
-        with open("../molecules/base.xyz", "r") as f:
+        with open("../structures/base/base.xyz", "r") as f:
             for i in range(int(self.width()/Hydrogen.XSIZE)):
                 x_offset = i*output.X_SCALE
                 for j in range(int(self.height()/Hydrogen.YSIZE)):

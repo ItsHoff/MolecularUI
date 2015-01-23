@@ -43,7 +43,7 @@ class Contact(QtGui.QGraphicsItem):
             out_pos += 1.0*pos.y()/Hydrogen.YSIZE * output.Y_SCALE
             translation = 0.5*output.X_SCALE + output.Y_SCALE + output.HEIGHT
             rotation_m = output.getClockwiseRotationM(self.rotation())
-            with open("../molecules/contact.xyz", "r") as f:
+            with open("../structures/molecules/contact.xyz", "r") as f:
                 count = 0
                 f.seek(0)
                 for line in f:
@@ -64,7 +64,6 @@ class Contact(QtGui.QGraphicsItem):
         if self.collidesWithItem(self.parentItem(), QtCore.Qt.ContainsItemShape):
             return True
         else:
-            print "not on surface"
             return False
 
     def collidesWithContacts(self):
@@ -110,7 +109,6 @@ class Contact(QtGui.QGraphicsItem):
         remove = QtGui.QAction("Remove contact", menu)
         QtCore.QObject.connect(remove, QtCore.SIGNAL("triggered()"), self.reset)
         menu.addAction(remove)
-
 
     def boundingRect(self):
         """Return the bounding rectangle of the item."""

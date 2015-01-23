@@ -59,10 +59,12 @@ docs/_build/
 # Folders to ignore
 Mockup/
 scripts/
-saves/
+saves/*
+!saves/README
 .settings/
 examples/
-output/
+output/*
+!output/README
 test/
 
 # Files to ignore
