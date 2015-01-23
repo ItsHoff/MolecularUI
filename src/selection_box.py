@@ -10,18 +10,19 @@ class SelectionBox(QtGui.QGraphicsItem):
         super(SelectionBox, self).__init__(parent, scene)
         self.setX(origin.x() - origin.x() % Hydrogen.XSIZE)
         self.setY(origin.y() - origin.y() % Hydrogen.YSIZE)
+        self.size = QtCore.QSizeF(origin.x() - self.pos().x(),
+                                  origin.y() - self.pos().y())
         self.setZValue(2)
-        self.origin = self.pos()
-        self.corner = origin
 
     def setCorner(self, corner):
         """Set the corner to the new value. Signal the geometry change."""
         self.prepareGeometryChange()
         if self.parentItem().contains(corner):
-            old_corner = self.corner
-            self.corner = corner
+            old_size = self.size
+            self.size = QtCore.QSizeF(corner.x() - self.pos().x(),
+                                      corner.y() - self.pos().y())
             if self.collidesWithSelections():
-                self.corner = old_corner
+                self.size = old_size
 
     def selectionArea(self):
         """Return the area under the box in scene coordinates."""
@@ -30,28 +31,19 @@ class SelectionBox(QtGui.QGraphicsItem):
     def finalize(self):
         """Finalize the selection."""
         self.prepareGeometryChange()
-        if self.corner.x() < self.origin.x():
-            self.corner.setX(self.corner.x() + Hydrogen.XSIZE - self.corner.x()%Hydrogen.XSIZE)
-            xmin = self.corner.x()
-            xmax = self.origin.x()
+        if self.width() < 0:
+            self.size.setWidth(abs(self.width() + Hydrogen.XSIZE - self.width() % Hydrogen.XSIZE))
+            self.moveBy(-self.width(), 0)
         else:
-            self.corner.setX(self.corner.x() - self.corner.x()%Hydrogen.XSIZE)
-            xmin = self.origin.x()
-            xmax = self.corner.x()
-        if self.corner.y() < self.origin.y():
-            self.corner.setY(self.corner.y() + Hydrogen.YSIZE - self.corner.y()%Hydrogen.YSIZE)
-            ymin = self.corner.y()
-            ymax = self.origin.y()
+            self.size.setWidth(self.width() - self.width() % Hydrogen.XSIZE)
+        if self.height() < 0:
+            self.size.setHeight(abs(self.height() + Hydrogen.YSIZE - self.height() % Hydrogen.YSIZE))
+            self.moveBy(0, -self.height())
         else:
-            self.corner.setY(self.corner.y() - self.corner.y()%Hydrogen.YSIZE)
-            ymin = self.origin.y()
-            ymax = self.corner.y()
-        if ymin == ymax or xmin == xmax:
+            self.size.setHeight(self.height() - self.height() % Hydrogen.YSIZE)
+        if self.height() == 0 or self.width() == 0:
             self.scene().removeItem(self)
             return
-        self.origin = QtCore.QPointF(xmin, ymin)
-        self.setPos(self.origin)
-        self.corner = QtCore.QPointF(xmax, ymax)
         self.populate()
 
     def populate(self):
@@ -157,8 +149,8 @@ class SelectionBox(QtGui.QGraphicsItem):
     def boundingRect(self):
         """Return the bounding rectangle of the box in item coordinates.
         Make sure that width and height are positive."""
-        w = self.corner.x() - self.origin.x() + 2
-        h = self.corner.y() - self.origin.y() + 2
+        w = self.size.width() + 2
+        h = self.size.height() + 2
         x = min(0, w) - 1
         y = min(0, h) - 1
         return QtCore.QRectF(x, y, abs(w), abs(h))
@@ -166,8 +158,8 @@ class SelectionBox(QtGui.QGraphicsItem):
     def shape(self):
         """Return the shape of the box in item coordinates.
         Make sure that width and height are positive."""
-        w = self.corner.x() - self.origin.x() - 0.2
-        h = self.corner.y() - self.origin.y() - 0.2
+        w = self.size.width() - 0.2
+        h = self.size.height() - 0.2
         x = min(0, w) + 0.1
         y = min(0, h) + 0.1
         path = QtGui.QPainterPath()
@@ -181,7 +173,7 @@ class SelectionBox(QtGui.QGraphicsItem):
         painter.setPen(pen)
         if self.childItems():
             painter.setBrush(QtGui.QColor(80, 80, 122))
-        painter.drawRect(self.boundingRect())
+        painter.drawRect(0, 0, self.width(), self.height())
 
     def mousePressEvent(self, event):
         """If left mouse button is pressed down start dragging
@@ -220,27 +212,27 @@ class SelectionBox(QtGui.QGraphicsItem):
 
     def width(self):
         """Return the width of the surface."""
-        return self.sceneBoundingRect().width()
+        return self.size.width()
 
     def height(self):
         """Return the height of the surface."""
-        return self.sceneBoundingRect().height()
+        return self.size.height()
 
     def left(self):
         """Return the x value of the left border."""
-        return self.sceneBoundingRect().left()
+        return self.pos().x()
 
     def right(self):
         """Return the x value of the right border."""
-        return self.sceneBoundingRect().right()
+        return self.pos().x() + self.width()
 
     def top(self):
         """Return the y value of the top border."""
-        return self.sceneBoundingRect().top()
+        return self.pos().y()
 
     def bottom(self):
         """Return the y value of the bottom border."""
-        return self.sceneBoundingRect().bottom()
+        return self.pos().y() +  self.height()
 
 
 class SaveSelection(object):
@@ -248,16 +240,15 @@ class SaveSelection(object):
     def __init__(self, selection):
         self.x = selection.pos().x()
         self.y = selection.pos().y()
+        self.size = selection.size
         self.width = selection.width()
         self.height = selection.height()
-        self.corner = selection.corner
         self.child_items = []
         for child in selection.childItems():
             self.child_items.append(child.getSaveState())
 
     def load(self, surface):
         selection = SelectionBox(QtCore.QPointF(self.x, self.y), surface)
-        selection.corner = self.corner
         selection.size = QtCore.QSizeF(self.width, self.height)
         for child in self.child_items:
             child.load(selection)

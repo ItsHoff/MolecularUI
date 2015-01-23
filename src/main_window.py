@@ -180,6 +180,7 @@ class MainWidget(QtGui.QWidget):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         path = current_dir + "/../blocks/"
         files = os.listdir(path)
+        files.sort()
         for file_name in files:
             try:
                 load_file = "../blocks/" + file_name
