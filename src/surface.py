@@ -2,7 +2,7 @@ from PyQt4 import QtGui, QtCore
 import numpy as np
 
 from hydrogen import Hydrogen
-from contact import Contact
+from molecule import Molecule
 import output
 import molecular_scene
 
@@ -36,20 +36,18 @@ class Surface(QtGui.QGraphicsItem):
         colliding_item = self.scene().itemAt(x, y)
         if (not isinstance(colliding_item, Hydrogen) or
            colliding_item.parentItem() is not self):
-            Hydrogen(x-x%Hydrogen.XSIZE, y-y%Hydrogen.YSIZE, self)
+            Hydrogen(x, y, self)
 
     def addDroppedItem(self, pos, dropped_item):
         """Add a item dropped in to the scene on to the surface."""
         data_type = dropped_item.data(0, QtCore.Qt.UserRole)
         data = dropped_item.data(0, QtCore.Qt.UserRole + 1)
-        if data_type == "CONTACT":
-            new_item = Contact(pos.x(), pos.y(), self)
-        elif data_type == "BLOCK":
+        if data_type == "BLOCK":
             new_item = data.load(self)
             new_item.setPos(pos.x() - pos.x()%Hydrogen.XSIZE,
                             pos.y() - pos.y()%Hydrogen.YSIZE)
         elif data_type == "MOLECULE":
-            pass
+            new_item = Molecule(pos.x(), pos.y(), data, self)
         if not new_item.resolveCollisions():
             self.scene().removeItem(new_item)
             status_bar = self.scene().views()[0].window().statusBar()
@@ -124,7 +122,7 @@ class Surface(QtGui.QGraphicsItem):
                     self.populateHorizontalLines(old_rect.bottom(), self.bottom())
         # Ignore the changes if contacts are outside of the new surface
         for item in self.childItems():
-            if isinstance(item, Contact):
+            if isinstance(item, Molecule):
                 if not item.onSurface():
                     self.size = old_rect.size()
                     self.corner = old_rect.topLeft()
@@ -146,7 +144,7 @@ class Surface(QtGui.QGraphicsItem):
                         if count > 2:
                             split = line.split()
                             pos = np.array([float(x) for x in split[1:4]])
-                            pos = pos + x_offset + y_offset + base_translation
+                            pos = pos + np.array((x_offset, y_offset, 0)) + base_translation
                             result.append("%-4s %-10f %-10f %-10f %d" %
                                 ((split[0],) + tuple(pos) + ((len(result) + 1),)))
         for item in self.childItems():

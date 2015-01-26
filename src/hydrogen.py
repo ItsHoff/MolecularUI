@@ -1,5 +1,5 @@
-
 from PyQt4 import QtGui, QtCore
+import numpy as np
 
 import output
 import molecular_scene
@@ -10,10 +10,10 @@ class Hydrogen(QtGui.QGraphicsItem):
     YSIZE = 25
     RADIUS = 0.4 * YSIZE
     LEFT_RECT = QtCore.QRectF(output.LEFT_H_POS[0]*XSIZE - RADIUS,
-                              output.LEFT_H_POS[2]*YSIZE - RADIUS,
+                              output.LEFT_H_POS[1]*YSIZE - RADIUS,
                               2*RADIUS, 2*RADIUS)
     RIGHT_RECT = QtCore.QRectF(output.RIGHT_H_POS[0]*XSIZE - RADIUS,
-                               output.RIGHT_H_POS[2]*YSIZE - RADIUS,
+                               output.RIGHT_H_POS[1]*YSIZE - RADIUS,
                                2*RADIUS, 2*RADIUS)
     NORMAL = 0
     VACANT = 1
@@ -37,8 +37,8 @@ class Hydrogen(QtGui.QGraphicsItem):
             pos = self.scenePos() - self.parentItem().parentItem().corner
         else:
             pos = self.pos() - self.parentItem().corner
-        out_pos = (pos.x()/self.XSIZE * output.X_SCALE +
-                  pos.y()/self.YSIZE * output.Y_SCALE)
+        out_pos = np.array((pos.x()/self.XSIZE * output.X_SCALE,
+                  pos.y()/self.YSIZE * output.Y_SCALE, 0))
         if self.left_status == self.NORMAL:
             left_pos = out_pos + output.LEFT_H_POS * output.TOTAL_SCALE
             result.append("%-4s %-10f %-10f %-10f %d" %

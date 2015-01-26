@@ -2,7 +2,6 @@ import sys
 import os
 
 import cPickle as pickle
-
 import sip
 API_NAMES = ["QDate", "QDateTime", "QString", "QTextStream", "QTime", "QUrl", "QVariant"]
 API_VERSION = 2
@@ -12,6 +11,7 @@ from PyQt4 import QtGui, QtCore
 
 from molecular_view import MolecularView
 from molecular_scene import MolecularScene
+import molecule_info
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -167,13 +167,19 @@ class MainWidget(QtGui.QWidget):
 
     def loadContacts(self):
         """Load contacts under the corresponding top item."""
-        sub_item = QtGui.QTreeWidgetItem(self.top_items["Contacts"])
-        sub_item.setText(0, "Contact")
-        sub_item.setData(0, QtCore.Qt.UserRole, "CONTACT")
+        for item in molecule_info.contacts:
+            sub_item = QtGui.QTreeWidgetItem(self.top_items["Contacts"])
+            sub_item.setText(0, item.name)
+            sub_item.setData(0, QtCore.Qt.UserRole, "MOLECULE")
+            sub_item.setData(0, QtCore.Qt.UserRole+1, item)
 
     def loadMolecules(self):
         """Load molecules under the corresponding top item."""
-        pass
+        for item in molecule_info.molecules:
+            sub_item = QtGui.QTreeWidgetItem(self.top_items["Molecules"])
+            sub_item.setText(0, item.name)
+            sub_item.setData(0, QtCore.Qt.UserRole, "MOLECULE")
+            sub_item.setData(0, QtCore.Qt.UserRole+1, item)
 
     def loadSurfaceBlocks(self):
         """Load surface blocks under the corresponding top item."""

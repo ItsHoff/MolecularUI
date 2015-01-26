@@ -6,8 +6,9 @@ import numpy as np
 from hydrogen import Hydrogen
 import output
 import molecular_scene
+import molecule_info
 
-class Contact(QtGui.QGraphicsItem):
+class Molecule(QtGui.QGraphicsItem):
 
     XSIZE = 3*Hydrogen.XSIZE
     YSIZE = 4*Hydrogen.YSIZE
@@ -23,27 +24,40 @@ class Contact(QtGui.QGraphicsItem):
     PATH.arcTo(XSIZE - 20, 0, 20, 20, 0, 90)
     PATH.closeSubpath()
 
-    def __init__(self, x, y, parent=None):
-        super(Contact, self).__init__(parent)
-        self.setX(x - x % 25)
-        self.setY(y - y % 25)
-        self.xsize = self.XSIZE
-        self.ysize = self.YSIZE
+    def __init__(self, x, y, variables, parent=None):
+        super(Molecule, self).__init__(parent)
+        self.variables = variables
+        if self.variables.special_shape is not None:
+            self.special_shape = molecule_info.shapes[self.variables.special_shape]
+        else:
+            self.special_shape = None
+        self.setX(x - x % self.variables.snap[0])
+        self.setY(y - y % self.variables.snap[1])
+        self.xsize = self.variables.size[0]
+        self.ysize = self.variables.size[1]
         self.dragged = False
         self.setZValue(3)
-        self.translate(-25, -25)
-        self.setTransformOriginPoint(50, 50)
+        self.translate(*self.variables.scene_translation)
+        self.setTransformOriginPoint(*self.variables.rotation_axis)
 
     def getOutput(self, result):
         """Add the output data of the contact in to the results if it is
-        on the surface."""
+        on the surface.
+        """
         if self.onSurface():
             pos = self.pos() - self.parentItem().corner
-            out_pos = 1.0*pos.x()/Hydrogen.XSIZE * output.X_SCALE
-            out_pos += 1.0*pos.y()/Hydrogen.YSIZE * output.Y_SCALE
-            translation = 0.5*output.X_SCALE + output.Y_SCALE + output.HEIGHT
-            rotation_m = output.getClockwiseRotationM(self.rotation())
-            with open("../structures/molecules/contact.xyz", "r") as f:
+            out_pos = np.array((1.0*pos.x()/Hydrogen.XSIZE * output.X_SCALE,
+                                1.0*pos.y()/Hydrogen.YSIZE * output.Y_SCALE, 0))
+            scene_translation = self.variables.scene_translation
+            translation = (np.array(self.variables.output_translation)
+                + np.array((1.0*scene_translation[0]/Hydrogen.XSIZE*output.X_SCALE,
+                            1.0*scene_translation[1]/Hydrogen.YSIZE*output.Y_SCALE, 0)))
+            rotation_axis = (-np.array(self.variables.output_translation) +
+                np.array((1.0*self.variables.rotation_axis[0]/Hydrogen.XSIZE*output.X_SCALE,
+                1.0*self.variables.rotation_axis[1]/Hydrogen.YSIZE*output.Y_SCALE, 0)))
+            print rotation_axis
+            rotation_m = output.getCounterClockwiseRotationM(self.rotation())
+            with open("../structures/molecules/" + self.variables.output_file, "r") as f:
                 count = 0
                 f.seek(0)
                 for line in f:
@@ -51,13 +65,16 @@ class Contact(QtGui.QGraphicsItem):
                     if count > 2:
                         split = line.split()
                         atom_pos = np.array([float(x) for x in split[1:4]])
-                        atom_pos = np.dot(rotation_m, atom_pos) + out_pos + translation
+                        atom_pos -= rotation_axis
+                        atom_pos = np.dot(rotation_m, atom_pos)
+                        atom_pos += rotation_axis
+                        atom_pos += out_pos + translation
                         result.append("%-4s %-10f %-10f %-10f %d" %
                             ((split[0],) + tuple(atom_pos) + ((len(result) + 1),)))
 
     def getSaveState(self):
         """Return the state of the item without Qt bindings."""
-        return SaveContact(self)
+        return SaveMolecule(self)
 
     def onSurface(self):
         """Check if the item is on the surface."""
@@ -66,10 +83,10 @@ class Contact(QtGui.QGraphicsItem):
         else:
             return False
 
-    def collidesWithContacts(self):
+    def collidesWithMolecules(self):
         """Check if the contact collides with other contacts."""
         for item in self.collidingItems():
-            if isinstance(item, Contact):
+            if isinstance(item, Molecule):
                 return True
         return False
 
@@ -77,17 +94,17 @@ class Contact(QtGui.QGraphicsItem):
         """Tries to resolve collisions by moving the item."""
         pos = self.pos()
         for i in range(10):
-            self.setPos(pos.x(), pos.y() + i*25)
-            if self.onSurface() and not self.collidesWithContacts():
+            self.setPos(pos.x(), pos.y() + i*self.variables.snap[1])
+            if self.onSurface() and not self.collidesWithMolecules():
                 return True
-            self.setPos(pos.x(), pos.y() - i*25)
-            if self.onSurface() and not self.collidesWithContacts():
+            self.setPos(pos.x(), pos.y() - i*self.variables.snap[1])
+            if self.onSurface() and not self.collidesWithMolecules():
                 return True
-            self.setPos(pos.x() + i*25, pos.y())
-            if self.onSurface() and not self.collidesWithContacts():
+            self.setPos(pos.x() + i*self.variables.snap[0], pos.y())
+            if self.onSurface() and not self.collidesWithMolecules():
                 return True
-            self.setPos(pos.x() - i*25, pos.y())
-            if self.onSurface() and not self.collidesWithContacts():
+            self.setPos(pos.x() - i*self.variables.snap[0], pos.y())
+            if self.onSurface() and not self.collidesWithMolecules():
                 return True
         self.setPos(pos)
         return False
@@ -102,11 +119,12 @@ class Contact(QtGui.QGraphicsItem):
 
     def addContextActions(self, menu):
         """Add item specific context actions to the menu."""
-        rotate = QtGui.QAction("Rotate contact", menu)
-        QtCore.QObject.connect(rotate, QtCore.SIGNAL("triggered()"), self.contextRotate)
-        menu.addAction(rotate)
+        if self.variables.rotating:
+            rotate = QtGui.QAction("Rotate " + self.variables.name, menu)
+            QtCore.QObject.connect(rotate, QtCore.SIGNAL("triggered()"), self.contextRotate)
+            menu.addAction(rotate)
 
-        remove = QtGui.QAction("Remove contact", menu)
+        remove = QtGui.QAction("Remove " + self.variables.name, menu)
         QtCore.QObject.connect(remove, QtCore.SIGNAL("triggered()"), self.reset)
         menu.addAction(remove)
 
@@ -116,15 +134,22 @@ class Contact(QtGui.QGraphicsItem):
 
     def shape(self):
         """Return the shape of the item."""
-        return Contact.PATH
+        if self.special_shape is not None:
+            return self.special_shape
+        else:
+            return super(Molecule, self).shape()
 
     def paint(self, painter, options, widget):
         """Draw the item if it is on the surface."""
-        if self.scene().paint_mode == molecular_scene.PAINT_ALL:
-            if self.onSurface():
-                painter.setBrush(QtGui.QColor(241, 231, 65))
-                painter.setPen(QtGui.QColor(0, 0, 0))
-                painter.drawPath(self.PATH)
+        if self.scene().paint_mode == molecular_scene.PAINT_SURFACE_ONLY:
+            painter.setOpacity(0.3)
+        if self.onSurface():
+            painter.setBrush(QtGui.QColor(*self.variables.color))
+            painter.setPen(QtGui.QColor(0, 0, 0))
+            if self.special_shape is not None:
+                painter.drawPath(self.special_shape)
+            else:
+                painter.drawRect(self.boundingRect())
 
     def mousePressEvent(self, event):
         """If left mouse button is pressed down start dragging
@@ -134,11 +159,11 @@ class Contact(QtGui.QGraphicsItem):
            self.scene().paint_mode != molecular_scene.PAINT_SURFACE_ONLY):
             self.dragged = True
         else:
-            super(Contact, self).mousePressEvent(event)
+            super(Molecule, self).mousePressEvent(event)
 
     def mouseDoubleClickEvent(self, event):
         """Rotate the item on double click."""
-        if event.button() == QtCore.Qt.LeftButton:
+        if event.button() == QtCore.Qt.LeftButton and self.variables.rotating:
             self.setRotation(self.rotation() + 90)
             if not self.resolveCollisions():
                 status_bar = self.scene().views()[0].window().statusBar()
@@ -161,23 +186,24 @@ class Contact(QtGui.QGraphicsItem):
         if self.dragged:
             old_pos = self.pos()
             pos = event.scenePos()
-            pos.setX(pos.x() - pos.x() % (Hydrogen.XSIZE/2))
-            pos.setY(pos.y() - pos.y() % Hydrogen.YSIZE)
+            pos.setX(pos.x() - pos.x() % self.variables.snap[0])
+            pos.setY(pos.y() - pos.y() % self.variables.snap[1])
             self.setPos(pos)
-            if not self.onSurface() or self.collidesWithContacts():
+            if not self.onSurface() or self.collidesWithMolecules():
                 self.setPos(old_pos)
             self.scene().updateMovingSceneRect()
             self.scene().views()[0].autoScroll(event.scenePos())
             self.scene().update()
 
 
-class SaveContact(object):
+class SaveMolecule(object):
 
-    def __init__(self, contact):
-        self.x = contact.x()
-        self.y = contact.y()
-        self.rotation = contact.rotation()
+    def __init__(self, molecule):
+        self.x = molecule.x()
+        self.y = molecule.y()
+        self.variables = molecule.variables
+        self.rotation = molecule.rotation()
 
     def load(self, surface):
-        contact = Contact(self.x, self.y, surface)
-        contact.setRotation(self.rotation)
+        molecule = Molecule(self.x, self.y, self.variables, surface)
+        molecule.setRotation(self.rotation)
