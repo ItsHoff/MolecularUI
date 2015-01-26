@@ -55,7 +55,6 @@ class Molecule(QtGui.QGraphicsItem):
             rotation_axis = (-np.array(self.variables.output_translation) +
                 np.array((1.0*self.variables.rotation_axis[0]/Hydrogen.XSIZE*output.X_SCALE,
                 1.0*self.variables.rotation_axis[1]/Hydrogen.YSIZE*output.Y_SCALE, 0)))
-            print rotation_axis
             rotation_m = output.getCounterClockwiseRotationM(self.rotation())
             with open("../structures/molecules/" + self.variables.output_file, "r") as f:
                 count = 0

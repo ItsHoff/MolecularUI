@@ -48,7 +48,7 @@ contacts = [
         scene_translation   =   (-Hydrogen.XSIZE/2, -Hydrogen.YSIZE),
         output_translation  =   (output.X_SCALE, 2*output.Y_SCALE, output.Z_SCALE),
         rotating            =   True,
-        rotation_axis       =   (2*Hydrogen.XSIZE, Hydrogen.YSIZE),
+        rotation_axis       =   (Hydrogen.XSIZE, 2*Hydrogen.YSIZE),
         special_shape       =   "Contact"
         )
 ]
