@@ -22,20 +22,20 @@ class Surface(QtGui.QGraphicsItem):
         super(Surface, self).__init__(scene=scene)
         self.size = None
         self.corner = None
+        self.filled_positions = set()
 
     @classmethod
     def create(cls, scene):
         surface = cls(scene)
-        surface.size = QtCore.QSizeF(20 * Hydrogen.XSIZE, 40 * Hydrogen.YSIZE)
-        surface.corner = QtCore.QPointF(-10 * Hydrogen.XSIZE, -20 * Hydrogen.YSIZE)
+        surface.size = QtCore.QSizeF(100 * Hydrogen.XSIZE, 200 * Hydrogen.YSIZE)
+        surface.corner = QtCore.QPointF(-surface.size.width()/2, -surface.size.height()/2)
         surface.populate()
         return surface
 
     def addHydrogen(self, x, y):
         """Add a hydrogen pair on to the surface at (x,y)."""
-        colliding_item = self.scene().itemAt(x, y)
-        if (not isinstance(colliding_item, Hydrogen) or
-           colliding_item.parentItem() is not self):
+        if (x, y) not in self.filled_positions:
+            self.filled_positions.add((x, y))
             Hydrogen(x, y, self)
 
     def addDroppedItem(self, pos, dropped_item):
@@ -72,21 +72,17 @@ class Surface(QtGui.QGraphicsItem):
         """Fill the vertical lines between xmin and xmax with hydrogen."""
         for x in range(int(xmin), int(xmax) + Hydrogen.XSIZE, Hydrogen.XSIZE):
             y = self.top()
-            items_at_line = self.scene().items(x, y, Hydrogen.XSIZE, self.bottom() - y)
-            if len(items_at_line) < (self.bottom() - y)/Hydrogen.YSIZE:
-                while y < self.bottom():
-                    self.addHydrogen(x, y)
-                    y += Hydrogen.YSIZE
+            while y < self.bottom():
+                self.addHydrogen(x, y)
+                y += Hydrogen.YSIZE
 
     def populateHorizontalLines(self, ymin, ymax):
         """Fill the horizontal lines between ymin and ymax with hydrogen."""
         for y in range(int(ymin), int(ymax) + Hydrogen.YSIZE, Hydrogen.YSIZE):
             x = self.left()
-            items_at_line = self.scene().items(x, y, self.right() - x, Hydrogen.YSIZE)
-            if len(items_at_line) < (self.right() - x)/Hydrogen.XSIZE:
-                while x < self.right():
-                    self.addHydrogen(x, y)
-                    x += Hydrogen.XSIZE
+            while x < self.right():
+                self.addHydrogen(x, y)
+                x += Hydrogen.XSIZE
 
     def resize(self, pos, border):
         """Resize the surface by moving given border to the given position."""
@@ -122,7 +118,7 @@ class Surface(QtGui.QGraphicsItem):
                     self.populateHorizontalLines(old_rect.bottom(), self.bottom())
         # Ignore the changes if contacts are outside of the new surface
         for item in self.childItems():
-            if isinstance(item, Molecule):
+            if not isinstance(item, Hydrogen):
                 if not item.onSurface():
                     self.size = old_rect.size()
                     self.corner = old_rect.topLeft()

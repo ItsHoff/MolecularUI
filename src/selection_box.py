@@ -111,7 +111,7 @@ class SelectionBox(QtGui.QGraphicsItem):
 
     def onSurface(self):
         """Check if the item is on the surface."""
-        if self.collidesWithItem(self.parentItem(), QtCore.Qt.ContainsItemBoundingRect):
+        if self.collidesWithItem(self.parentItem(), QtCore.Qt.ContainsItemShape):
             return True
         else:
             return False
