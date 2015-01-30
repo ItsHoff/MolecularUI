@@ -253,7 +253,7 @@ class MolecularScene(QtGui.QGraphicsScene):
     def mouseReleaseEvent(self, event):
         """Reset all the flags possibly set by mouse press events."""
         super(MolecularScene, self).mouseReleaseEvent(event)
-        self.views()[0].scroll_dir = None
+        self.views()[0].scroll_dir = set()
         self.drag_border = None
         self.updateSceneRect()
         if self.selection_box is not None:

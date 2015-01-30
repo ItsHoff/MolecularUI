@@ -20,10 +20,10 @@ class MolecularView(QtGui.QGraphicsView):
         self.panning = False
         self.mouse_pos = None
         self.scale_factor = 1
-        self.min_factor = 0.3
+        self.min_factor = 0.1
         self.max_factor = 2.5
 
-        self.scroll_dir = None
+        self.scroll_dir = set()
         self.scroll_timer = QtCore.QTimer(self)
         self.scroll_timer.start(20)
         QtCore.QObject().connect(self.scroll_timer, QtCore.SIGNAL("timeout()"),
@@ -36,32 +36,31 @@ class MolecularView(QtGui.QGraphicsView):
         to that edge if it is.
         point = scene point
         """
-        self.scroll_dir = None
+        self.scroll_dir = set()
         view_pos = self.mapFromScene(point)
         if view_pos.x() < SCROLL_DISTANCE:
-            self.scroll_dir = LEFT
-        elif self.width() - view_pos.x() < SCROLL_DISTANCE:
-            self.scroll_dir = RIGHT
-        elif view_pos.y() < SCROLL_DISTANCE:
-            self.scroll_dir = UP
-        elif self.height() - view_pos.y() < SCROLL_DISTANCE:
-            self.scroll_dir = DOWN
+            self.scroll_dir.add(LEFT)
+        if self.width() - view_pos.x() < SCROLL_DISTANCE:
+            self.scroll_dir.add(RIGHT)
+        if view_pos.y() < SCROLL_DISTANCE:
+            self.scroll_dir.add(UP)
+        if self.height() - view_pos.y() < SCROLL_DISTANCE:
+            self.scroll_dir.add(DOWN)
 
     def scrollTimeOut(self):
         """Scroll the scene on scroll timer timeout if direction is set."""
-        if self.scroll_dir == LEFT:
+        if LEFT in self.scroll_dir:
             scroll_bar = self.horizontalScrollBar()
             scroll_bar.setValue(scroll_bar.value() - SCROLL_SPEED)
-        elif self.scroll_dir == RIGHT:
+        if RIGHT in self.scroll_dir:
             scroll_bar = self.horizontalScrollBar()
             scroll_bar.setValue(scroll_bar.value() + SCROLL_SPEED)
-        elif self.scroll_dir == UP:
+        if UP in self.scroll_dir:
             scroll_bar = self.verticalScrollBar()
             scroll_bar.setValue(scroll_bar.value() - SCROLL_SPEED)
-        elif self.scroll_dir == DOWN:
+        if DOWN in self.scroll_dir:
             scroll_bar = self.verticalScrollBar()
             scroll_bar.setValue(scroll_bar.value() + SCROLL_SPEED)
-        self.update()
 
     def wheelEvent(self, event):
         """Scale the view when wheel is scrolled."""
@@ -108,4 +107,3 @@ class MolecularView(QtGui.QGraphicsView):
                 self.verticalScrollBar().value() - diff.y())
             self.horizontalScrollBar().setValue(
                 self.horizontalScrollBar().value() - diff.x())
-            self.scene().update()

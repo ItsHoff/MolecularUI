@@ -17,8 +17,10 @@ class Hydrogen(QtGui.QGraphicsItem):
                                2*RADIUS, 2*RADIUS)
     NORMAL = 0
     VACANT = 1
-    NORMAL_COLOR = QtGui.QColor(255, 0, 0)
-    VACANT_COLOR = QtGui.QColor(43, 143, 141)
+    NORMAL_BRUSH = QtGui.QBrush(QtGui.QColor(255, 0, 0))
+    VACANT_BRUSH = QtGui.QBrush(QtGui.QColor(43, 143, 141))
+    PEN = QtGui.QPen(QtGui.QColor(0, 0, 0))
+    PEN.setWidth(1)
 
     def __init__(self, x, y, parent):
         self.xsize = Hydrogen.XSIZE
@@ -112,21 +114,19 @@ class Hydrogen(QtGui.QGraphicsItem):
         """Paint the item if its on the surface."""
         if not self.onSurface():
             return
-        pen = QtGui.QPen(QtGui.QColor(0, 0, 0))
-        pen.setWidth(1)
-        painter.setPen(pen)
+        painter.setPen(self.PEN)
         painter.drawRect(0, 0, self.xsize, self.ysize)
         if self.left_status == self.VACANT:
-            painter.setBrush(self.VACANT_COLOR)
+            painter.setBrush(self.VACANT_BRUSH)
             painter.drawEllipse(self.LEFT_RECT)
         else:
-            painter.setBrush(self.NORMAL_COLOR)
+            painter.setBrush(self.NORMAL_BRUSH)
             painter.drawEllipse(self.LEFT_RECT)
         if self.right_status == self.VACANT:
-            painter.setBrush(self.VACANT_COLOR)
+            painter.setBrush(self.VACANT_BRUSH)
             painter.drawEllipse(self.RIGHT_RECT)
         else:
-            painter.setBrush(self.NORMAL_COLOR)
+            painter.setBrush(self.NORMAL_BRUSH)
             painter.drawEllipse(self.RIGHT_RECT)
 
     def mousePressEvent(self, event):
