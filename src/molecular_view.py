@@ -47,6 +47,10 @@ class MolecularView(QtGui.QGraphicsView):
         if self.height() - view_pos.y() < SCROLL_DISTANCE:
             self.scroll_dir.add(DOWN)
 
+    def endScroll(self):
+        """End the auto scrolling."""
+        self.scroll_dir = set()
+
     def scrollTimeOut(self):
         """Scroll the scene on scroll timer timeout if direction is set."""
         if LEFT in self.scroll_dir:

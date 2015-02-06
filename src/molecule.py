@@ -174,7 +174,7 @@ class Molecule(QtGui.QGraphicsItem):
         if event.button() == QtCore.Qt.LeftButton:
             self.dragged = False
             self.scene().painting_status = None
-            self.scene().views()[0].scroll_dir = set()
+            self.scene().views()[0].endScroll()
             self.ensureVisible()
             self.scene().updateSceneRect()
 
