@@ -160,14 +160,21 @@ class Hydrogen(QtGui.QGraphicsItem):
         under the mouse to the one given by the scene painting_status.
         """
         if self.scene().painting_status is not None:
-            item_to_paint = self.parentItem().findHydrogenAt(event.scenePos())
-            if item_to_paint is not None:
-                pos = item_to_paint.mapFromScene(event.scenePos())
-                if pos.x() < item_to_paint.xsize/2:
-                    item_to_paint.left_status = self.scene().painting_status
-                else:
-                    item_to_paint.right_status = self.scene().painting_status
-                item_to_paint.update()
+            line = QtGui.QGraphicsLineItem(QtCore.QLineF(event.scenePos(), event.lastScenePos()),
+                                           self.scene().surface)
+            for item in line.collidingItems():
+                if isinstance(item, Hydrogen) and not item.overwritten():
+                    l_rect = QtCore.QRectF(-0.1, -0.1, Hydrogen.XSIZE/2 + 0.2, Hydrogen.YSIZE + 0.2)
+                    r_rect = QtCore.QRectF(Hydrogen.XSIZE/2 - 0.1, -0.1, Hydrogen.XSIZE/2 + 0.2,
+                                           Hydrogen.YSIZE + 0.2)
+                    left_rect = QtGui.QGraphicsRectItem(l_rect.translated(item.scenePos()))
+                    right_rect = QtGui.QGraphicsRectItem(r_rect.translated(item.scenePos()))
+                    if line.collidesWithItem(left_rect):
+                        item.left_status = self.scene().painting_status
+                    if line.collidesWithItem(right_rect):
+                        item.right_status = self.scene().painting_status
+                    item.update()
+            self.scene().removeItem(line)
 
 
 class SaveHydrogen(object):
