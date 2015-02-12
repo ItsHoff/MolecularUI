@@ -160,15 +160,8 @@ class Hydrogen(QtGui.QGraphicsItem):
         under the mouse to the one given by the scene painting_status.
         """
         if self.scene().painting_status is not None:
-            if self.scene().paint_mode == molecular_scene.PAINT_SURFACE_ONLY:
-                item_to_paint = None
-                for item in self.scene().items(event.scenePos()):
-                    if isinstance(item, Hydrogen):
-                        item_to_paint = item
-                        break
-            else:
-                item_to_paint = self.scene().itemAt(event.scenePos())
-            if isinstance(item_to_paint, Hydrogen):
+            item_to_paint = self.parentItem().findHydrogenAt(event.scenePos())
+            if item_to_paint is not None:
                 pos = item_to_paint.mapFromScene(event.scenePos())
                 if pos.x() < item_to_paint.xsize/2:
                     item_to_paint.left_status = self.scene().painting_status

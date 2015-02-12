@@ -22,21 +22,22 @@ class Surface(QtGui.QGraphicsItem):
         super(Surface, self).__init__(scene=scene)
         self.size = None
         self.corner = None
-        self.filled_positions = set()
+        self.surface_atoms = {}
+        self.selection_atoms = {}
 
     @classmethod
     def create(cls, scene):
         surface = cls(scene)
-        surface.size = QtCore.QSizeF(100 * Hydrogen.XSIZE, 200 * Hydrogen.YSIZE)
+        surface.size = QtCore.QSizeF(50 * Hydrogen.XSIZE, 100 * Hydrogen.YSIZE)
         surface.corner = QtCore.QPointF(-surface.size.width()/2, -surface.size.height()/2)
         surface.populate()
         return surface
 
     def addHydrogen(self, x, y):
         """Add a hydrogen pair on to the surface at (x,y)."""
-        if (x, y) not in self.filled_positions:
-            self.filled_positions.add((x, y))
-            Hydrogen(x, y, self)
+        if (x, y) not in self.surface_atoms:
+            hydrogen = Hydrogen(x, y, self)
+            self.surface_atoms[(x, y)] = hydrogen
 
     def addDroppedItem(self, pos, dropped_item):
         """Add a item dropped in to the scene on to the surface."""
@@ -52,6 +53,32 @@ class Surface(QtGui.QGraphicsItem):
             self.scene().removeItem(new_item)
             status_bar = self.scene().views()[0].window().statusBar()
             status_bar.showMessage("Item couldn't be added there.", 3000)
+
+    def findHydrogenAt(self, pos):
+        """Return the hydrogen at the given position."""
+        key = (pos.x() - pos.x()%Hydrogen.XSIZE, pos.y() - pos.y()%Hydrogen.YSIZE)
+        if key in self.selection_atoms:
+            return self.selection_atoms[key]
+        elif key in self.surface_atoms:
+            return self.surface_atoms[key]
+        else:
+            return None
+
+    def removeFromIndex(self, rect):
+        """Remove items inside the given rectangle from the index."""
+        xmin = rect.left() + Hydrogen.XSIZE - rect.left() % Hydrogen.XSIZE
+        xmax = rect.right() - Hydrogen.XSIZE
+        ymin = rect.top() + Hydrogen.YSIZE - rect.top() % Hydrogen.YSIZE
+        ymax = rect.bottom() - Hydrogen.YSIZE
+        for x in range(int(xmin), int(xmax), Hydrogen.XSIZE):
+            for y in range(int(ymin), int(ymax), Hydrogen.YSIZE):
+                del self.selection_atoms[(x, y)]
+
+    def addToIndex(self, selection):
+        """Add child items of selection to the index."""
+        for item in selection.childItems():
+            pos = item.scenePos()
+            self.selection_atoms[(pos.x(), pos.y())] = item
 
     def boundingRect(self):
         """Return the bounding rectangle of the surface."""

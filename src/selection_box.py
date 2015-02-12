@@ -12,6 +12,7 @@ class SelectionBox(QtGui.QGraphicsItem):
         self.setY(origin.y() - origin.y() % Hydrogen.YSIZE)
         self.size = QtCore.QSizeF(origin.x() - self.pos().x(),
                                   origin.y() - self.pos().y())
+        self.indexed_rect = None
         self.setZValue(2)
 
     def setCorner(self, corner):
@@ -45,6 +46,7 @@ class SelectionBox(QtGui.QGraphicsItem):
             self.scene().removeItem(self)
             return
         self.populate()
+        self.updateIndexing()
 
     def populate(self):
         """Fill the selection area with hydrogen and
@@ -58,6 +60,19 @@ class SelectionBox(QtGui.QGraphicsItem):
                 hydrogen.copyFromSurface()
                 x += Hydrogen.XSIZE
             y += Hydrogen.YSIZE
+
+    def updateIndexing(self):
+        """Update the atom index of the surface."""
+        new_rect = self.mapRectToScene(self.boundingRect())
+        if new_rect != self.indexed_rect:
+            if self.indexed_rect is not None:
+                self.parentItem().removeFromIndex(self.indexed_rect)
+            self.parentItem().addToIndex(self)
+            self.indexed_rect = new_rect
+
+    def findHydrogenAt(self, pos):
+        """Return the hydrogen at the given position."""
+        return self.parentItem().findHydrogenAt(pos)
 
     def addContextActions(self, menu):
         """Add widget specific context actions to the
@@ -189,6 +204,7 @@ class SelectionBox(QtGui.QGraphicsItem):
         """End drag when mouse is released."""
         if event.button() == QtCore.Qt.LeftButton:
             self.dragged = False
+            self.updateIndexing()
             self.scene().painting_status = None
             self.scene().views()[0].endScroll()
             self.ensureVisible()
