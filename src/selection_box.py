@@ -268,4 +268,5 @@ class SaveSelection(object):
         selection.size = QtCore.QSizeF(self.width, self.height)
         for child in self.child_items:
             child.load(selection)
+        selection.updateIndexing()
         return selection

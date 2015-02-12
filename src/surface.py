@@ -47,12 +47,20 @@ class Surface(QtGui.QGraphicsItem):
             new_item = data.load(self)
             new_item.setPos(pos.x() - pos.x()%Hydrogen.XSIZE,
                             pos.y() - pos.y()%Hydrogen.YSIZE)
+            new_item.updateIndexing()
         elif data_type == "MOLECULE":
             new_item = Molecule(pos.x(), pos.y(), data, self)
         if not new_item.resolveCollisions():
             self.scene().removeItem(new_item)
             status_bar = self.scene().views()[0].window().statusBar()
             status_bar.showMessage("Item couldn't be added there.", 3000)
+
+    def indexAtoms(self):
+        """Add unindexed surface atoms to the index."""
+        for item in self.childItems():
+            if isinstance(item, Hydrogen):
+                if not (item.x(), item.y()) in self.surface_atoms:
+                    self.surface_atoms[item.x(), item.y()] = item
 
     def findHydrogenAt(self, pos):
         """Return the hydrogen at the given position."""
@@ -258,3 +266,4 @@ class SaveSurface(object):
         scene.surface = surface
         for child in self.child_items:
             child.load(surface)
+        surface.indexAtoms()
