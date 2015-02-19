@@ -28,7 +28,7 @@ class Surface(QtGui.QGraphicsItem):
     @classmethod
     def create(cls, scene):
         surface = cls(scene)
-        surface.size = QtCore.QSizeF(50 * Hydrogen.XSIZE, 100 * Hydrogen.YSIZE)
+        surface.size = QtCore.QSizeF(100 * Hydrogen.XSIZE, 200 * Hydrogen.YSIZE)
         surface.corner = QtCore.QPointF(-surface.size.width()/2, -surface.size.height()/2)
         surface.populate()
         return surface
@@ -162,22 +162,44 @@ class Surface(QtGui.QGraphicsItem):
     def getOutput(self):
         """Get the output information of the surface and its child items."""
         result = []
-        base_translation = output.LEFT_H_POS * output.TOTAL_SCALE
-        with open("../structures/base/base.xyz", "r") as f:
+        nlayers = 5
+        for layer in range(1, nlayers+1):
+            if layer == 1:
+                z_offset = np.array([0, 0, -1.406])
+                left_offset = np.array([2.639680, -1.92, 0])
+                right_offset = np.array([5.039680, -1.92, 0])
+            elif layer == 2:
+                z_offset = output.INITIAL_Z
+                left_offset = output.LAYER_LEFT[(layer+2) % 4]
+                right_offset = output.LAYER_RIGHT[(layer+2) % 4]
+            else:
+                z_offset = (max((layer+2)/4 - 1, 0) * output.Z_OFFSET + output.INITIAL_Z
+                            + output.LAYER_Z[(layer+2) % 4])
+                left_offset = output.LAYER_LEFT[(layer+2) % 4]
+                right_offset = output.LAYER_RIGHT[(layer+2) % 4]
             for i in range(int(self.width()/Hydrogen.XSIZE)):
-                x_offset = i*output.X_SCALE
+                x_offset = i*output.X_OFFSET
                 for j in range(int(self.height()/Hydrogen.YSIZE)):
-                    y_offset = j*output.Y_SCALE
-                    count = 0
-                    f.seek(0)
-                    for line in f:
-                        count += 1
-                        if count > 2:
-                            split = line.split()
-                            pos = np.array([float(x) for x in split[1:4]])
-                            pos = pos + np.array((x_offset, y_offset, 0)) + base_translation
-                            result.append("%-4s %-10f %-10f %-10f %d" %
-                                ((split[0],) + tuple(pos) + ((len(result) + 1),)))
+                    y_offset = j*output.Y_OFFSET
+                    left_pos = x_offset + y_offset + z_offset + left_offset
+                    right_pos = x_offset + y_offset + z_offset + right_offset
+                    result.append("%-4s %-10f %-10f %-10f %d" %
+                        (("SI",) + tuple(left_pos) + ((len(result) + 1),)))
+                    result.append("%-4s %-10f %-10f %-10f %d" %
+                        (("SI",) + tuple(right_pos) + ((len(result) + 1),)))
+                    if layer == nlayers:
+                        result.append("%-4s %-10f %-10f %-10f %d" %
+                            (("H",) + tuple(left_pos + output.LEFT_BOTTOM_H[layer%2])
+                             + ((len(result) + 1),)))
+                        result.append("%-4s %-10f %-10f %-10f %d" %
+                            (("H",) + tuple(left_pos + output.RIGHT_BOTTOM_H[layer%2])
+                             + ((len(result) + 1),)))
+                        result.append("%-4s %-10f %-10f %-10f %d" %
+                            (("H",) + tuple(right_pos + output.LEFT_BOTTOM_H[layer%2])
+                             + ((len(result) + 1),)))
+                        result.append("%-4s %-10f %-10f %-10f %d" %
+                            (("H",) + tuple(right_pos + output.RIGHT_BOTTOM_H[layer%2])
+                             + ((len(result) + 1),)))
         for item in self.childItems():
             item.getOutput(result)
         return result
