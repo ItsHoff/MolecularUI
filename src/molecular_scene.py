@@ -225,7 +225,7 @@ class MolecularScene(QtGui.QGraphicsScene):
 
     def checkBorder(self, pos):
         """Check if cursor is close to one of the surface edges."""
-        distance = 20
+        distance = 20 / self.parent().scale_factor
         surface_rect = self.surface.sceneBoundingRect()
         top = surface_rect.top()
         bottom = surface_rect.bottom()
