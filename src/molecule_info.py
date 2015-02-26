@@ -3,11 +3,11 @@ import math
 from PyQt4 import QtGui, QtCore
 import numpy as np
 
-from hydrogen import Hydrogen
+from atom_pair import AtomPair
 import output
 
-CONTACT_XSIZE = 3*Hydrogen.XSIZE
-CONTACT_YSIZE = 4*Hydrogen.YSIZE
+CONTACT_XSIZE = 3*AtomPair.XSIZE
+CONTACT_YSIZE = 4*AtomPair.YSIZE
 CONTACT_PATH = QtGui.QPainterPath()
 CONTACT_PATH.setFillRule(QtCore.Qt.WindingFill)
 tip_angle = math.degrees(math.atan(13.0/27 * CONTACT_YSIZE/CONTACT_XSIZE))
@@ -23,7 +23,7 @@ CONTACT_PATH.closeSubpath()
 class MoleculeInfo(object):
 
     def __init__(self, name, size, output_file, color=(255, 255, 255),
-                 snap=(Hydrogen.XSIZE, Hydrogen.YSIZE),
+                 snap=(AtomPair.XSIZE, AtomPair.YSIZE),
                  scene_translation=(0, 0), output_translation=(0, 0, output.Z_SCALE),
                  rotating=False, rotation_axis=(0, 0), special_shape=None):
         self.name = name
@@ -41,14 +41,14 @@ class MoleculeInfo(object):
 contacts = [
     MoleculeInfo(
         name                =   "Contact",
-        size                =   (3*Hydrogen.XSIZE, 4*Hydrogen.YSIZE),
+        size                =   (3*AtomPair.XSIZE, 4*AtomPair.YSIZE),
         output_file         =   "contact.xyz",
         color               =   (241, 231, 65),
-        snap                =   (Hydrogen.XSIZE/2, Hydrogen.YSIZE),
-        scene_translation   =   (-Hydrogen.XSIZE/2, -Hydrogen.YSIZE),
+        snap                =   (AtomPair.XSIZE/2, AtomPair.YSIZE),
+        scene_translation   =   (-AtomPair.XSIZE/2, -AtomPair.YSIZE),
         output_translation  =   (output.X_SCALE, 2*output.Y_SCALE, output.Z_SCALE),
         rotating            =   True,
-        rotation_axis       =   (Hydrogen.XSIZE, 2*Hydrogen.YSIZE),
+        rotation_axis       =   (AtomPair.XSIZE, 2*AtomPair.YSIZE),
         special_shape       =   "Contact"
         )
 ]
@@ -56,10 +56,10 @@ contacts = [
 molecules = [
     MoleculeInfo(
         name                =   "Test Molecule",
-        size                =   (Hydrogen.XSIZE, 2*Hydrogen.YSIZE),
+        size                =   (AtomPair.XSIZE, 2*AtomPair.YSIZE),
         output_file         =   "test_molecule.xyz",
         color               =   (255, 0, 0),
-        snap                =   (Hydrogen.XSIZE, Hydrogen.YSIZE),
+        snap                =   (AtomPair.XSIZE, AtomPair.YSIZE),
         scene_translation   =   (0, 0),
         output_translation  =   (0, 0, 0),
         rotating            =   False,

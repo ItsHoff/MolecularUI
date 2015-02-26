@@ -1,7 +1,7 @@
 from PyQt4 import QtGui, QtCore
 import numpy as np
 
-from hydrogen import Hydrogen
+from atom_pair import AtomPair
 from molecule import Molecule
 import output
 import molecular_scene
@@ -22,22 +22,26 @@ class Surface(QtGui.QGraphicsItem):
         super(Surface, self).__init__(scene=scene)
         self.size = None
         self.corner = None
+        self.atom_types = ["H", "HE", "AU", "AU", "AU"]
         self.surface_atoms = {}
         self.selection_atoms = {}
+        self.painting_status = 0
+        self.current_atom = 0
+        self.currently_painting = False
 
     @classmethod
     def create(cls, scene):
         surface = cls(scene)
-        surface.size = QtCore.QSizeF(100 * Hydrogen.XSIZE, 200 * Hydrogen.YSIZE)
+        surface.size = QtCore.QSizeF(50 * AtomPair.XSIZE, 100 * AtomPair.YSIZE)
         surface.corner = QtCore.QPointF(-surface.size.width()/2, -surface.size.height()/2)
         surface.populate()
         return surface
 
-    def addHydrogen(self, x, y):
+    def addAtom(self, x, y):
         """Add a hydrogen pair on to the surface at (x,y)."""
         if (x, y) not in self.surface_atoms:
-            hydrogen = Hydrogen(x, y, self)
-            self.surface_atoms[(x, y)] = hydrogen
+            atom = AtomPair(x, y, self)
+            self.surface_atoms[(x, y)] = atom
 
     def addDroppedItem(self, pos, dropped_item):
         """Add a item dropped in to the scene on to the surface."""
@@ -45,8 +49,8 @@ class Surface(QtGui.QGraphicsItem):
         data = dropped_item.data(0, QtCore.Qt.UserRole + 1)
         if data_type == "BLOCK":
             new_item = data.load(self)
-            new_item.setPos(pos.x() - pos.x()%Hydrogen.XSIZE,
-                            pos.y() - pos.y()%Hydrogen.YSIZE)
+            new_item.setPos(pos.x() - pos.x()%AtomPair.XSIZE,
+                            pos.y() - pos.y()%AtomPair.YSIZE)
             new_item.updateIndexing()
         elif data_type == "MOLECULE":
             new_item = Molecule(pos.x(), pos.y(), data, self)
@@ -58,13 +62,13 @@ class Surface(QtGui.QGraphicsItem):
     def indexAtoms(self):
         """Add unindexed surface atoms to the index."""
         for item in self.childItems():
-            if isinstance(item, Hydrogen):
+            if isinstance(item, AtomPair):
                 if not (item.x(), item.y()) in self.surface_atoms:
                     self.surface_atoms[item.x(), item.y()] = item
 
-    def findHydrogenAt(self, pos):
+    def findAtomAt(self, pos):
         """Return the hydrogen at the given position."""
-        key = (pos.x() - pos.x()%Hydrogen.XSIZE, pos.y() - pos.y()%Hydrogen.YSIZE)
+        key = (pos.x() - pos.x()%AtomPair.XSIZE, pos.y() - pos.y()%AtomPair.YSIZE)
         if key in self.selection_atoms:
             return self.selection_atoms[key]
         elif key in self.surface_atoms:
@@ -73,13 +77,13 @@ class Surface(QtGui.QGraphicsItem):
             return None
 
     def removeFromIndex(self, rect):
-        """Remove items inside the given rectangle from the index."""
-        xmin = rect.left() + Hydrogen.XSIZE - rect.left() % Hydrogen.XSIZE
-        xmax = rect.right() - Hydrogen.XSIZE
-        ymin = rect.top() + Hydrogen.YSIZE - rect.top() % Hydrogen.YSIZE
-        ymax = rect.bottom() - Hydrogen.YSIZE
-        for x in range(int(xmin), int(xmax), Hydrogen.XSIZE):
-            for y in range(int(ymin), int(ymax), Hydrogen.YSIZE):
+        """Remove items inside the given rectangle from the selection index."""
+        xmin = rect.left() + AtomPair.XSIZE - rect.left() % AtomPair.XSIZE
+        xmax = rect.right() - AtomPair.XSIZE
+        ymin = rect.top() + AtomPair.YSIZE - rect.top() % AtomPair.YSIZE
+        ymax = rect.bottom() - AtomPair.YSIZE
+        for x in range(int(xmin), int(xmax), AtomPair.XSIZE):
+            for y in range(int(ymin), int(ymax), AtomPair.YSIZE):
                 del self.selection_atoms[(x, y)]
 
     def addToIndex(self, selection):
@@ -99,25 +103,25 @@ class Surface(QtGui.QGraphicsItem):
         while y < self.bottom():
             x = self.left()
             while x < self.right():
-                self.addHydrogen(x, y)
-                x += Hydrogen.XSIZE
-            y += Hydrogen.YSIZE
+                self.addAtom(x, y)
+                x += AtomPair.XSIZE
+            y += AtomPair.YSIZE
 
     def populateVerticalLines(self, xmin, xmax):
         """Fill the vertical lines between xmin and xmax with hydrogen."""
-        for x in range(int(xmin), int(xmax) + Hydrogen.XSIZE, Hydrogen.XSIZE):
+        for x in range(int(xmin), int(xmax) + AtomPair.XSIZE, AtomPair.XSIZE):
             y = self.top()
             while y < self.bottom():
-                self.addHydrogen(x, y)
-                y += Hydrogen.YSIZE
+                self.addAtom(x, y)
+                y += AtomPair.YSIZE
 
     def populateHorizontalLines(self, ymin, ymax):
         """Fill the horizontal lines between ymin and ymax with hydrogen."""
-        for y in range(int(ymin), int(ymax) + Hydrogen.YSIZE, Hydrogen.YSIZE):
+        for y in range(int(ymin), int(ymax) + AtomPair.YSIZE, AtomPair.YSIZE):
             x = self.left()
             while x < self.right():
-                self.addHydrogen(x, y)
-                x += Hydrogen.XSIZE
+                self.addAtom(x, y)
+                x += AtomPair.XSIZE
 
     def resize(self, pos, border):
         """Resize the surface by moving given border to the given position."""
@@ -125,35 +129,35 @@ class Surface(QtGui.QGraphicsItem):
         old_rect = QtCore.QRectF(self.corner, self.size)
         if border == LEFTB or border == BOTTOMLB or border == TOPLB:
             if pos.x() < self.right():
-                if pos.x() < self.left() - Hydrogen.XSIZE:
-                    self.setLeft(pos.x() - pos.x() % Hydrogen.XSIZE + Hydrogen.XSIZE)
+                if pos.x() < self.left() - AtomPair.XSIZE:
+                    self.setLeft(pos.x() - pos.x() % AtomPair.XSIZE + AtomPair.XSIZE)
                     self.populateVerticalLines(self.left(), old_rect.left())
-                elif pos.x() > self.left() + Hydrogen.XSIZE:
-                    self.setLeft(pos.x() - pos.x() % Hydrogen.XSIZE)
+                elif pos.x() > self.left() + AtomPair.XSIZE:
+                    self.setLeft(pos.x() - pos.x() % AtomPair.XSIZE)
         if border == RIGHTB or border == BOTTOMRB or border == TOPRB:
             if pos.x() > self.left():
-                if pos.x() < self.right() - Hydrogen.XSIZE:
-                    self.setRight(pos.x() - pos.x() % Hydrogen.XSIZE + Hydrogen.XSIZE)
-                elif pos.x() > self.right() + Hydrogen.XSIZE:
-                    self.setRight(pos.x() - pos.x() % Hydrogen.XSIZE)
+                if pos.x() < self.right() - AtomPair.XSIZE:
+                    self.setRight(pos.x() - pos.x() % AtomPair.XSIZE + AtomPair.XSIZE)
+                elif pos.x() > self.right() + AtomPair.XSIZE:
+                    self.setRight(pos.x() - pos.x() % AtomPair.XSIZE)
                     self.populateVerticalLines(old_rect.right(), self.right())
         if border == TOPB or border == TOPLB or border == TOPRB:
             if pos.y() < self.bottom():
-                if pos.y() < self.top() - Hydrogen.YSIZE:
-                    self.setTop(pos.y() - pos.y() % Hydrogen.YSIZE + Hydrogen.YSIZE)
+                if pos.y() < self.top() - AtomPair.YSIZE:
+                    self.setTop(pos.y() - pos.y() % AtomPair.YSIZE + AtomPair.YSIZE)
                     self.populateHorizontalLines(self.top(), old_rect.top())
-                elif pos.y() > self.top() + Hydrogen.YSIZE:
-                    self.setTop(pos.y() - pos.y() % Hydrogen.YSIZE)
+                elif pos.y() > self.top() + AtomPair.YSIZE:
+                    self.setTop(pos.y() - pos.y() % AtomPair.YSIZE)
         if border == BOTTOMB or border == BOTTOMLB or border == BOTTOMRB:
             if pos.y() > self.top():
-                if pos.y() < self.bottom() - Hydrogen.YSIZE:
-                    self.setBottom(pos.y() - pos.y() % Hydrogen.YSIZE + Hydrogen.YSIZE)
-                elif pos.y() > self.bottom() + Hydrogen.YSIZE:
-                    self.setBottom(pos.y() - pos.y() % Hydrogen.YSIZE)
+                if pos.y() < self.bottom() - AtomPair.YSIZE:
+                    self.setBottom(pos.y() - pos.y() % AtomPair.YSIZE + AtomPair.YSIZE)
+                elif pos.y() > self.bottom() + AtomPair.YSIZE:
+                    self.setBottom(pos.y() - pos.y() % AtomPair.YSIZE)
                     self.populateHorizontalLines(old_rect.bottom(), self.bottom())
         # Ignore the changes if contacts are outside of the new surface
         for item in self.childItems():
-            if not isinstance(item, Hydrogen):
+            if not isinstance(item, AtomPair):
                 if not item.onSurface():
                     self.size = old_rect.size()
                     self.corner = old_rect.topLeft()
@@ -177,9 +181,9 @@ class Surface(QtGui.QGraphicsItem):
                             + output.LAYER_Z[(layer+2) % 4])
                 left_offset = output.LAYER_LEFT[(layer+2) % 4]
                 right_offset = output.LAYER_RIGHT[(layer+2) % 4]
-            for i in range(int(self.width()/Hydrogen.XSIZE)):
+            for i in range(int(self.width()/AtomPair.XSIZE)):
                 x_offset = i*output.X_OFFSET
-                for j in range(int(self.height()/Hydrogen.YSIZE)):
+                for j in range(int(self.height()/AtomPair.YSIZE)):
                     y_offset = j*output.Y_OFFSET
                     left_pos = x_offset + y_offset + z_offset + left_offset
                     right_pos = x_offset + y_offset + z_offset + right_offset
@@ -217,10 +221,9 @@ class Surface(QtGui.QGraphicsItem):
     def paint(self, painter, options, widget):
         """Draw the surface."""
         painter.setPen(QtGui.QColor(0, 0, 0))
-        if self.scene().paint_mode == molecular_scene.PAINT_ALL:
-            painter.setBrush(QtGui.QColor(48, 48, 122))
-        else:
-            painter.setBrush(QtGui.QColor(68, 68, 142))
+        painter.setBrush(QtGui.QColor(48, 48, 122))
+        if self.scene().current_layer != 0:
+            painter.setOpacity(0.5)
         painter.drawRect(QtCore.QRectF(self.corner, self.size))
 
     def width(self):
@@ -277,6 +280,7 @@ class SaveSurface(object):
         self.y = surface.corner.y()
         self.width = surface.width()
         self.height = surface.height()
+        self.atom_types = surface.atom_types
         self.child_items = []
         for child in surface.childItems():
             self.child_items.append(child.getSaveState())
@@ -285,6 +289,7 @@ class SaveSurface(object):
         surface = Surface(scene)
         surface.corner = QtCore.QPointF(self.x, self.y)
         surface.size = QtCore.QSizeF(self.width, self.height)
+        surface.atom_types = self.atom_types
         scene.surface = surface
         for child in self.child_items:
             child.load(surface)

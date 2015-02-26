@@ -1,6 +1,6 @@
 from PyQt4 import QtGui, QtCore
 
-from hydrogen import Hydrogen
+from atom_pair import AtomPair
 
 
 class SelectionBox(QtGui.QGraphicsItem):
@@ -8,8 +8,8 @@ class SelectionBox(QtGui.QGraphicsItem):
 
     def __init__(self, origin, parent=None, scene=None):
         super(SelectionBox, self).__init__(parent, scene)
-        self.setX(origin.x() - origin.x() % Hydrogen.XSIZE)
-        self.setY(origin.y() - origin.y() % Hydrogen.YSIZE)
+        self.setX(origin.x() - origin.x() % AtomPair.XSIZE)
+        self.setY(origin.y() - origin.y() % AtomPair.YSIZE)
         self.size = QtCore.QSizeF(origin.x() - self.pos().x(),
                                   origin.y() - self.pos().y())
         self.indexed_rect = None
@@ -33,15 +33,15 @@ class SelectionBox(QtGui.QGraphicsItem):
         """Finalize the selection."""
         self.prepareGeometryChange()
         if self.width() < 0:
-            self.size.setWidth(abs(self.width() + Hydrogen.XSIZE - self.width() % Hydrogen.XSIZE))
+            self.size.setWidth(abs(self.width() + AtomPair.XSIZE - self.width() % AtomPair.XSIZE))
             self.moveBy(-self.width(), 0)
         else:
-            self.size.setWidth(self.width() - self.width() % Hydrogen.XSIZE)
+            self.size.setWidth(self.width() - self.width() % AtomPair.XSIZE)
         if self.height() < 0:
-            self.size.setHeight(abs(self.height() + Hydrogen.YSIZE - self.height() % Hydrogen.YSIZE))
+            self.size.setHeight(abs(self.height() + AtomPair.YSIZE - self.height() % AtomPair.YSIZE))
             self.moveBy(0, -self.height())
         else:
-            self.size.setHeight(self.height() - self.height() % Hydrogen.YSIZE)
+            self.size.setHeight(self.height() - self.height() % AtomPair.YSIZE)
         if self.height() == 0 or self.width() == 0:
             self.scene().removeItem(self)
             return
@@ -56,10 +56,11 @@ class SelectionBox(QtGui.QGraphicsItem):
         while y < self.height() - 2:
             x = 0
             while x < self.width() - 2:
-                hydrogen = Hydrogen(x-x%Hydrogen.XSIZE, y-y%Hydrogen.YSIZE, self)
-                hydrogen.copyFromSurface()
-                x += Hydrogen.XSIZE
-            y += Hydrogen.YSIZE
+                atom = AtomPair(x-x%AtomPair.XSIZE, y-y%AtomPair.YSIZE,
+                                self.parentItem(), self)
+                atom.copyFromSurface()
+                x += AtomPair.XSIZE
+            y += AtomPair.YSIZE
 
     def updateIndexing(self):
         """Update the atom index of the surface."""
@@ -70,9 +71,9 @@ class SelectionBox(QtGui.QGraphicsItem):
             self.parentItem().addToIndex(self)
             self.indexed_rect = new_rect
 
-    def findHydrogenAt(self, pos):
+    def findAtomAt(self, pos):
         """Return the hydrogen at the given position."""
-        return self.parentItem().findHydrogenAt(pos)
+        return self.parentItem().findAtomAt(pos)
 
     def addContextActions(self, menu):
         """Add widget specific context actions to the
@@ -82,42 +83,45 @@ class SelectionBox(QtGui.QGraphicsItem):
         QtCore.QObject.connect(save, QtCore.SIGNAL("triggered()"), self.save)
         menu.addAction(save)
 
-        fill_hydrogen = QtGui.QAction("Fill selected hydrogen", menu)
-        QtCore.QObject.connect(fill_hydrogen, QtCore.SIGNAL("triggered()"), self.fillHydrogen)
+        fill_hydrogen = QtGui.QAction("Fill selected atoms", menu)
+        QtCore.QObject.connect(fill_hydrogen, QtCore.SIGNAL("triggered()"), self.fillAtoms)
         menu.addAction(fill_hydrogen)
 
-        remove_hydrogen = QtGui.QAction("Remove selected hydrogen", menu)
-        QtCore.QObject.connect(remove_hydrogen, QtCore.SIGNAL("triggered()"), self.removeHydrogen)
+        remove_hydrogen = QtGui.QAction("Vacate selected atoms", menu)
+        QtCore.QObject.connect(remove_hydrogen, QtCore.SIGNAL("triggered()"), self.vacateAtoms)
         menu.addAction(remove_hydrogen)
 
-        remove = QtGui.QAction("Remove selection", menu)
-        QtCore.QObject.connect(remove, QtCore.SIGNAL("triggered()"), self.delete)
+        remove = QtGui.QAction("Deselect", menu)
+        QtCore.QObject.connect(remove, QtCore.SIGNAL("triggered()"), self.deselect)
         menu.addAction(remove)
 
-    def delete(self):
-        """Delete the item from the scene."""
+    def deselect(self):
+        """Remove the item from the scene and copy the atoms
+        back to the surface.
+        """
         for item in self.childItems():
             item.copyToSurface()
-        self.scene().removeItem(self)
+        self.reset()
 
     def save(self):
         """Save the item."""
         self.scene().views()[0].window().saveBlock(self)
         self.scene().views()[0].parent().updateBlocks()
 
-    def removeHydrogen(self):
+    def vacateAtoms(self):
         for item in self.childItems():
             item.left_status = item.VACANT
             item.right_status = item.VACANT
         self.update()
 
-    def fillHydrogen(self):
+    def fillAtoms(self):
         for item in self.childItems():
-            item.left_status = item.NORMAL
-            item.right_status = item.NORMAL
+            item.left_status = self.parentItem().current_atom
+            item.right_status = self.parentItem().current_atom
         self.update()
 
     def reset(self):
+        self.parentItem().removeFromIndex(self.sceneBoundingRect())
         self.scene().removeItem(self)
 
     def getOutput(self, result):
@@ -217,14 +221,14 @@ class SelectionBox(QtGui.QGraphicsItem):
         if self.dragged:
             old_pos = self.pos()
             pos = event.scenePos()
-            pos.setX(pos.x() - pos.x() % Hydrogen.XSIZE)
-            pos.setY(pos.y() - pos.y() % Hydrogen.YSIZE)
+            pos.setX(pos.x() - pos.x() % AtomPair.XSIZE)
+            pos.setY(pos.y() - pos.y() % AtomPair.YSIZE)
             self.setPos(pos)
             if not self.onSurface() or self.collidesWithSelections():
                 self.setPos(old_pos)
             self.scene().updateMovingSceneRect()
             self.scene().views()[0].autoScroll(event.scenePos())
-            self.scene().update()
+            self.update()
 
     def width(self):
         """Return the width of the surface."""
@@ -267,6 +271,6 @@ class SaveSelection(object):
         selection = SelectionBox(QtCore.QPointF(self.x, self.y), surface)
         selection.size = QtCore.QSizeF(self.width, self.height)
         for child in self.child_items:
-            child.load(selection)
+            child.load(surface, selection)
         selection.updateIndexing()
         return selection

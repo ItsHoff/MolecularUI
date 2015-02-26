@@ -3,15 +3,15 @@ import math
 from PyQt4 import QtCore, QtGui
 import numpy as np
 
-from hydrogen import Hydrogen
+from atom_pair import AtomPair
 import output
 import molecular_scene
 import molecule_info
 
 class Molecule(QtGui.QGraphicsItem):
 
-    XSIZE = 3*Hydrogen.XSIZE
-    YSIZE = 4*Hydrogen.YSIZE
+    XSIZE = 3*AtomPair.XSIZE
+    YSIZE = 4*AtomPair.YSIZE
     PATH = QtGui.QPainterPath()
     PATH.setFillRule(QtCore.Qt.WindingFill)
     tip_angle = math.degrees(math.atan(13.0/27 * YSIZE/XSIZE))
@@ -46,15 +46,15 @@ class Molecule(QtGui.QGraphicsItem):
         """
         if self.onSurface():
             pos = self.pos() - self.parentItem().corner
-            out_pos = np.array((1.0*pos.x()/Hydrogen.XSIZE * output.X_SCALE,
-                                1.0*pos.y()/Hydrogen.YSIZE * output.Y_SCALE, 0))
+            out_pos = np.array((1.0*pos.x()/AtomPair.XSIZE * output.X_SCALE,
+                                1.0*pos.y()/AtomPair.YSIZE * output.Y_SCALE, 0))
             scene_translation = self.variables.scene_translation
             translation = (np.array(self.variables.output_translation)
-                + np.array((1.0*scene_translation[0]/Hydrogen.XSIZE*output.X_SCALE,
-                            1.0*scene_translation[1]/Hydrogen.YSIZE*output.Y_SCALE, 0)))
+                + np.array((1.0*scene_translation[0]/AtomPair.XSIZE*output.X_SCALE,
+                            1.0*scene_translation[1]/AtomPair.YSIZE*output.Y_SCALE, 0)))
             rotation_axis = (-np.array(self.variables.output_translation) +
-                np.array((1.0*self.variables.rotation_axis[0]/Hydrogen.XSIZE*output.X_SCALE,
-                1.0*self.variables.rotation_axis[1]/Hydrogen.YSIZE*output.Y_SCALE, 0)))
+                np.array((1.0*self.variables.rotation_axis[0]/AtomPair.XSIZE*output.X_SCALE,
+                1.0*self.variables.rotation_axis[1]/AtomPair.YSIZE*output.Y_SCALE, 0)))
             rotation_m = output.getCounterClockwiseRotationM(self.rotation())
             with open("../structures/molecules/" + self.variables.output_file, "r") as f:
                 count = 0
@@ -141,7 +141,7 @@ class Molecule(QtGui.QGraphicsItem):
     def paint(self, painter, options, widget):
         """Draw the item if it is on the surface."""
         if self.scene().paint_mode == molecular_scene.PAINT_SURFACE_ONLY:
-            painter.setOpacity(0.3)
+            painter.setOpacity(0.5)
         if self.onSurface():
             painter.setBrush(QtGui.QColor(*self.variables.color))
             painter.setPen(QtGui.QColor(0, 0, 0))

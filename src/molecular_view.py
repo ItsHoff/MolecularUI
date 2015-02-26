@@ -22,6 +22,8 @@ class MolecularView(QtGui.QGraphicsView):
         self.scale_factor = 1
         self.min_factor = 0.1
         self.max_factor = 2.5
+        self.overlay = OverlayWidget(self)
+        self.overlay.show()
 
         self.scroll_dir = set()
         self.scroll_timer = QtCore.QTimer(self)
@@ -69,10 +71,16 @@ class MolecularView(QtGui.QGraphicsView):
     def wheelEvent(self, event):
         """Scale the view when wheel is scrolled."""
         if event.modifiers() == QtCore.Qt.ControlModifier:
-            if event.delta() < 0:
+            if event.delta() < 0 and self.scene().current_layer > 0:
+                self.scene().setLayer(self.scene().current_layer - 1)
+            elif (event.delta() < 0 and self.scene().current_layer == 0 and
+                  self.scene().paint_mode == molecular_scene.PAINT_SURFACE_ONLY):
                 self.scene().paint_mode = molecular_scene.PAINT_ALL
-            else:
+            elif (event.delta() > 0 and self.scene().current_layer == 0 and
+                  self.scene().paint_mode == molecular_scene.PAINT_ALL):
                 self.scene().paint_mode = molecular_scene.PAINT_SURFACE_ONLY
+            elif event.delta() > 0:
+                self.scene().setLayer(self.scene().current_layer + 1)
             self.scene().update()
         else:
             self.setTransformationAnchor(self.AnchorUnderMouse)
@@ -111,3 +119,26 @@ class MolecularView(QtGui.QGraphicsView):
                 self.verticalScrollBar().value() - diff.y())
             self.horizontalScrollBar().setValue(
                 self.horizontalScrollBar().value() - diff.x())
+
+
+class OverlayWidget(QtGui.QWidget):
+
+    def __init__(self, parent):
+        super(OverlayWidget, self).__init__(parent)
+        self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
+
+    def sizeHint(self):
+        return QtCore.QSize(100, 100)
+
+    def paintEvent(self, event):
+        qp = QtGui.QPainter(self)
+        qp.setPen(QtGui.QColor(0, 255, 0))
+        qp.setFont(QtGui.QFont(QtGui.QFont().defaultFamily(), 20))
+        scene = self.parent().scene()
+        if scene.current_layer == 0 and scene.paint_mode == molecular_scene.PAINT_ALL:
+            text = "T"
+        elif scene.current_layer == 0:
+            text = "S"
+        else:
+            text = str(scene.current_layer)
+        qp.drawText(10, 30, text)

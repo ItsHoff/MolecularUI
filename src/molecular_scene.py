@@ -2,7 +2,7 @@ from PyQt4 import QtGui, QtCore
 import numpy as np
 
 from surface import Surface
-from hydrogen import Hydrogen
+from atom_pair import AtomPair
 from contact import Contact
 from selection_box import SelectionBox
 
@@ -26,9 +26,10 @@ class MolecularScene(QtGui.QGraphicsScene):
         super(MolecularScene, self).__init__(parent)
         self.tree_widget = tree_widget
         self.surface = Surface.create(self)
+        self.layers = [self.surface]
+        self.current_layer = 0
         self.selection_box = None
         self.drag_border = None
-        self.painting_status = None
         self.saved_selections = [None]*10
         self.paint_mode = PAINT_ALL
         self.updateSceneRect()
@@ -58,6 +59,9 @@ class MolecularScene(QtGui.QGraphicsScene):
         new_rect = self.getNewSceneRect()
         new_rect = new_rect.united(old_rect)
         self.setSceneRect(new_rect)
+
+    def setLayer(self, layer_n):
+        self.current_layer = layer_n
 
     def getOutput(self):
         """Get the output information from the scene."""
