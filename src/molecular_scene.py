@@ -27,7 +27,13 @@ class MolecularScene(QtGui.QGraphicsScene):
         self.tree_widget = tree_widget
         self.surface = Surface.create(self)
         self.layers = [self.surface]
-        self.current_layer = 0
+        for i in range(4):
+            self.layers.append(Surface.create(self))
+            self.layers[i+1].atom_types[0] = "SI"
+            self.layers[i+1].hide()
+        self.current_layer_i = 0
+        self.current_layer = self.layers[self.current_layer_i]
+        self.peek_layer = None
         self.selection_box = None
         self.drag_border = None
         self.saved_selections = [None]*10
@@ -61,11 +67,21 @@ class MolecularScene(QtGui.QGraphicsScene):
         self.setSceneRect(new_rect)
 
     def setLayer(self, layer_n):
-        self.current_layer = layer_n
+        if layer_n < 0:
+            raise ValueError("Tried to set invalid layer.")
+        if layer_n >= len(self.layers):
+            return
+        self.current_layer.hide()
+        self.current_layer_i = layer_n
+        self.current_layer = self.layers[layer_n]
+        self.current_layer.show()
 
     def getOutput(self):
         """Get the output information from the scene."""
-        return self.surface.getOutput()
+        result = []
+        for layer in self.layers:
+            layer.getOutput(result)
+        return result
 
     def saveSelection(self, key):
         """Save current selection under key."""
@@ -203,9 +219,6 @@ class MolecularScene(QtGui.QGraphicsScene):
             border = self.checkBorder(event.scenePos())
             self.setCursor(border)
 
-    def handleKeyPress(self, event):
-        pass
-
     def mapFromGlobal(self, global_pos):
         """Map a position from global coordinates to scene coordinates."""
         view = self.views()[0]
@@ -284,18 +297,23 @@ class MolecularScene(QtGui.QGraphicsScene):
         """Save the current selection with control + number and load the
         selection with the corresponding number.
         """
-        zero = QtCore.Qt.Key_0
-        key = event.key()
-        if key >= zero and key <= zero + 9:
+        if event.key() == QtCore.Qt.Key_section or event.key() == QtCore.Qt.Key_QuoteLeft:
+            index = 0
+        else:
+            index = event.key() - QtCore.Qt.Key_0
+        if 0 <= index <= 9:
             if event.modifiers() & QtCore.Qt.ControlModifier:
-                self.saveSelection(key-zero)
-            else:
-                self.clearSelection()
-                if self.saved_selections[key-zero] is not None:
-                    bounding_rect = QtCore.QRectF()
-                    for item in self.saved_selections[key-zero]:
-                        rect = item.boundingRect()
-                        rect.moveTo(item.pos())
-                        bounding_rect = bounding_rect.united(rect)
-                        item.setSelected(True)
-                    self.views()[0].ensureVisible(bounding_rect, 0, 0)
+                self.setLayer(index)
+                self.peek_layer = None
+            elif self.peek_layer is None:
+                self.peek_layer = self.current_layer_i
+                self.setLayer(index)
+
+    def keyReleaseEvent(self, event):
+        if event.key() == QtCore.Qt.Key_section:
+            index = 0
+        else:
+            index = event.key() - QtCore.Qt.Key_0
+        if 0 <= index <= 9 and self.peek_layer is not None:
+            self.setLayer(self.peek_layer)
+            self.peek_layer = None

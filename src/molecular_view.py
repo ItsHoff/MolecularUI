@@ -71,16 +71,16 @@ class MolecularView(QtGui.QGraphicsView):
     def wheelEvent(self, event):
         """Scale the view when wheel is scrolled."""
         if event.modifiers() == QtCore.Qt.ControlModifier:
-            if event.delta() < 0 and self.scene().current_layer > 0:
-                self.scene().setLayer(self.scene().current_layer - 1)
-            elif (event.delta() < 0 and self.scene().current_layer == 0 and
+            if event.delta() < 0 and self.scene().current_layer_i > 0:
+                self.scene().setLayer(self.scene().current_layer_i - 1)
+            elif (event.delta() < 0 and self.scene().current_layer_i == 0 and
                   self.scene().paint_mode == molecular_scene.PAINT_SURFACE_ONLY):
                 self.scene().paint_mode = molecular_scene.PAINT_ALL
-            elif (event.delta() > 0 and self.scene().current_layer == 0 and
+            elif (event.delta() > 0 and self.scene().current_layer_i == 0 and
                   self.scene().paint_mode == molecular_scene.PAINT_ALL):
                 self.scene().paint_mode = molecular_scene.PAINT_SURFACE_ONLY
             elif event.delta() > 0:
-                self.scene().setLayer(self.scene().current_layer + 1)
+                self.scene().setLayer(self.scene().current_layer_i + 1)
             self.scene().update()
         else:
             self.setTransformationAnchor(self.AnchorUnderMouse)
@@ -135,10 +135,10 @@ class OverlayWidget(QtGui.QWidget):
         qp.setPen(QtGui.QColor(0, 255, 0))
         qp.setFont(QtGui.QFont(QtGui.QFont().defaultFamily(), 20))
         scene = self.parent().scene()
-        if scene.current_layer == 0 and scene.paint_mode == molecular_scene.PAINT_ALL:
+        if scene.current_layer_i == 0 and scene.paint_mode == molecular_scene.PAINT_ALL:
             text = "T"
-        elif scene.current_layer == 0:
+        elif scene.current_layer_i == 0:
             text = "S"
         else:
-            text = str(scene.current_layer)
+            text = str(scene.current_layer_i)
         qp.drawText(10, 30, text)

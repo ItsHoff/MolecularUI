@@ -25,7 +25,7 @@ class Surface(QtGui.QGraphicsItem):
         self.atom_types = ["H", "HE", "AU", "AU", "AU"]
         self.surface_atoms = {}
         self.selection_atoms = {}
-        self.painting_status = 0
+        self.painting_status = None
         self.current_atom = 0
         self.currently_painting = False
 
@@ -163,47 +163,8 @@ class Surface(QtGui.QGraphicsItem):
                     self.corner = old_rect.topLeft()
                     return False
 
-    def getOutput(self):
+    def getOutput(self, result):
         """Get the output information of the surface and its child items."""
-        result = []
-        nlayers = 5
-        for layer in range(1, nlayers+1):
-            if layer == 1:
-                z_offset = np.array([0, 0, -1.406])
-                left_offset = np.array([2.639680, -1.92, 0])
-                right_offset = np.array([5.039680, -1.92, 0])
-            elif layer == 2:
-                z_offset = output.INITIAL_Z
-                left_offset = output.LAYER_LEFT[(layer+2) % 4]
-                right_offset = output.LAYER_RIGHT[(layer+2) % 4]
-            else:
-                z_offset = (max((layer+2)/4 - 1, 0) * output.Z_OFFSET + output.INITIAL_Z
-                            + output.LAYER_Z[(layer+2) % 4])
-                left_offset = output.LAYER_LEFT[(layer+2) % 4]
-                right_offset = output.LAYER_RIGHT[(layer+2) % 4]
-            for i in range(int(self.width()/AtomPair.XSIZE)):
-                x_offset = i*output.X_OFFSET
-                for j in range(int(self.height()/AtomPair.YSIZE)):
-                    y_offset = j*output.Y_OFFSET
-                    left_pos = x_offset + y_offset + z_offset + left_offset
-                    right_pos = x_offset + y_offset + z_offset + right_offset
-                    result.append("%-4s %-10f %-10f %-10f %d" %
-                        (("SI",) + tuple(left_pos) + ((len(result) + 1),)))
-                    result.append("%-4s %-10f %-10f %-10f %d" %
-                        (("SI",) + tuple(right_pos) + ((len(result) + 1),)))
-                    if layer == nlayers:
-                        result.append("%-4s %-10f %-10f %-10f %d" %
-                            (("H",) + tuple(left_pos + output.LEFT_BOTTOM_H[layer%2])
-                             + ((len(result) + 1),)))
-                        result.append("%-4s %-10f %-10f %-10f %d" %
-                            (("H",) + tuple(left_pos + output.RIGHT_BOTTOM_H[layer%2])
-                             + ((len(result) + 1),)))
-                        result.append("%-4s %-10f %-10f %-10f %d" %
-                            (("H",) + tuple(right_pos + output.LEFT_BOTTOM_H[layer%2])
-                             + ((len(result) + 1),)))
-                        result.append("%-4s %-10f %-10f %-10f %d" %
-                            (("H",) + tuple(right_pos + output.RIGHT_BOTTOM_H[layer%2])
-                             + ((len(result) + 1),)))
         for item in self.childItems():
             item.getOutput(result)
         return result
@@ -222,8 +183,6 @@ class Surface(QtGui.QGraphicsItem):
         """Draw the surface."""
         painter.setPen(QtGui.QColor(0, 0, 0))
         painter.setBrush(QtGui.QColor(48, 48, 122))
-        if self.scene().current_layer != 0:
-            painter.setOpacity(0.5)
         painter.drawRect(QtCore.QRectF(self.corner, self.size))
 
     def width(self):

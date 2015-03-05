@@ -15,6 +15,13 @@ class AtomPair(QtGui.QGraphicsItem):
     RIGHT_RECT = QtCore.QRectF(output.RIGHT_H_POS[0]*XSIZE - RADIUS,
                                output.RIGHT_H_POS[1]*YSIZE - RADIUS,
                                2*RADIUS, 2*RADIUS)
+    SMALL_RADIUS = 0.25 * YSIZE
+    SMALL_LEFT_RECT = QtCore.QRectF(output.LEFT_H_POS[0]*XSIZE - SMALL_RADIUS,
+                              output.LEFT_H_POS[1]*YSIZE - SMALL_RADIUS,
+                              2*SMALL_RADIUS, 2*SMALL_RADIUS)
+    SMALL_RIGHT_RECT = QtCore.QRectF(output.RIGHT_H_POS[0]*XSIZE - SMALL_RADIUS,
+                               output.RIGHT_H_POS[1]*YSIZE - SMALL_RADIUS,
+                               2*SMALL_RADIUS, 2*SMALL_RADIUS)
     VACANT = "VACANT"
     CURRENT_ATOM = "CURRENT_ATOM"
     NORMAL_BRUSH = QtGui.QBrush(QtGui.QColor(255, 0, 0))
@@ -22,9 +29,9 @@ class AtomPair(QtGui.QGraphicsItem):
     PEN = QtGui.QPen(QtGui.QColor(0, 0, 0))
     PEN.setWidth(1)
 
-    def __init__(self, x, y, surface, parent=None):
+    def __init__(self, x, y, layer, parent=None):
         if parent is None:
-            parent = surface
+            parent = layer
         self.xsize = AtomPair.XSIZE
         self.ysize = AtomPair.YSIZE
         super(AtomPair, self).__init__(parent)
@@ -32,25 +39,57 @@ class AtomPair(QtGui.QGraphicsItem):
         self.setY(y)
         self.right_status = 0
         self.left_status = 0
-        self.surface = surface
+        self.layer = layer
 
     def getOutput(self, result):
         """Add the output information of the item in to the result."""
         if not self.onSurface() or self.overwritten():
             return
-        pos = self.scenePos() - self.surface.corner
+        layer_n = self.scene().layers.index(self.layer)
+        if layer_n == 0:
+            z_offset = np.array([0, 0, 0])
+            left_offset = output.LEFT_H_POS * output.TOTAL_SCALE
+            right_offset = output.RIGHT_H_POS * output.TOTAL_SCALE
+        elif layer_n == 1:
+            z_offset = output.SURFACE_Z
+            left_offset = output.SURFACE_LEFT
+            right_offset = output.SURFACE_RIGHT
+        elif layer_n == 2:
+            z_offset = output.INITIAL_Z
+            left_offset = output.LAYER_LEFT[(layer_n+2) % 4]
+            right_offset = output.LAYER_RIGHT[(layer_n+2) % 4]
+        else:
+            z_offset = (max((layer_n+2)/4 - 1, 0) * output.Z_OFFSET + output.INITIAL_Z
+                        + output.LAYER_Z[(layer_n+2) % 4])
+            left_offset = output.LAYER_LEFT[(layer_n+2) % 4]
+            right_offset = output.LAYER_RIGHT[(layer_n+2) % 4]
+        pos = self.scenePos() - self.layer.corner
         out_pos = np.array((pos.x()/self.XSIZE * output.X_SCALE,
                   pos.y()/self.YSIZE * output.Y_SCALE, 0))
         if self.left_status != self.VACANT:
-            left_pos = out_pos + output.LEFT_H_POS * output.TOTAL_SCALE
+            left_pos = out_pos + z_offset + left_offset
             result.append("%-4s %-10f %-10f %-10f %d" %
-                    ((self.surface.atom_types[self.left_status],) +
+                    ((self.layer.atom_types[self.left_status],) +
                      tuple(left_pos) + ((len(result) + 1),)))
+            if layer_n == len(self.scene().layers) - 1:
+                result.append("%-4s %-10f %-10f %-10f %d" %
+                    (("H",) + tuple(left_pos + output.LEFT_BOTTOM_H[layer_n%2])
+                    + ((len(result) + 1),)))
+                result.append("%-4s %-10f %-10f %-10f %d" %
+                    (("H",) + tuple(left_pos + output.RIGHT_BOTTOM_H[layer_n%2])
+                    + ((len(result) + 1),)))
         if self.right_status != self.VACANT:
-            right_pos = out_pos + output.RIGHT_H_POS * output.TOTAL_SCALE
+            right_pos = out_pos + z_offset + right_offset
             result.append("%-4s %-10f %-10f %-10f %d" %
-                    ((self.surface.atom_types[self.right_status],) +
+                    ((self.layer.atom_types[self.right_status],) +
                      tuple(right_pos) + ((len(result) + 1),)))
+            if layer_n == len(self.scene().layers) - 1:
+                result.append("%-4s %-10f %-10f %-10f %d" %
+                    (("H",) + tuple(right_pos + output.LEFT_BOTTOM_H[layer_n%2])
+                        + ((len(result) + 1),)))
+                result.append("%-4s %-10f %-10f %-10f %d" %
+                    (("H",) + tuple(right_pos + output.RIGHT_BOTTOM_H[layer_n%2])
+                        + ((len(result) + 1),)))
 
     def getSaveState(self):
         """Return the state of the item without Qt bindings."""
@@ -65,7 +104,7 @@ class AtomPair(QtGui.QGraphicsItem):
 
     def overwritten(self):
         """Check if hydrogen is overwritten by selection box."""
-        if (self.surface is self.parentItem() and
+        if (self.layer is self.parentItem() and
            self.getStackedAtom() is not None and
            self.getStackedAtom().scenePos() == self.scenePos()):
             return True
@@ -74,11 +113,11 @@ class AtomPair(QtGui.QGraphicsItem):
 
     def getStackedAtom(self):
         """Return the other hydrogen possibly stacked with this one."""
-        if self.surface is self.parentItem():
-            return self.surface.selection_atoms.get((self.x(), self.y()))
+        if self.layer is self.parentItem():
+            return self.layer.selection_atoms.get((self.x(), self.y()))
         else:
             pos = self.scenePos()
-            return self.surface.surface_atoms.get((pos.x(), pos.y()))
+            return self.layer.surface_atoms.get((pos.x(), pos.y()))
 
     def copyFromSurface(self):
         """Copy the state of surface hydrogen to selected hydrogen."""
@@ -88,8 +127,7 @@ class AtomPair(QtGui.QGraphicsItem):
         surface_atom.reset()
 
     def copyToSurface(self):
-        """Copy the status of selected hydrogen to surface hydrogen
-        under it."""
+        """Copy the status of selected atom to atom under it."""
         surface_atom = self.getStackedAtom()
         surface_atom.left_status = self.left_status
         surface_atom.right_status = self.right_status
@@ -113,12 +151,11 @@ class AtomPair(QtGui.QGraphicsItem):
         return path
 
     def paint(self, painter, options, widget):
-        """Paint the item if its on the surface."""
-        if not self.onSurface() or self.overwritten():
+        """Paint the item if its on the layer."""
+        if (not self.onSurface() or self.overwritten() or
+           self.scene().current_layer != self.layer):
             return
         painter.setPen(self.PEN)
-        if self.scene().current_layer != 0:
-            painter.setOpacity(0.5)
         painter.drawRect(0, 0, self.xsize, self.ysize)
         if self.left_status == self.VACANT:
             painter.setBrush(self.VACANT_BRUSH)
@@ -135,52 +172,59 @@ class AtomPair(QtGui.QGraphicsItem):
 
     def mousePressEvent(self, event):
         """Toggle the state of the hydrogen when clicked."""
+        if self.layer != self.scene().current_layer:
+            event.ignore()
+            return
         if (event.button() == QtCore.Qt.LeftButton and
            event.modifiers() == QtCore.Qt.NoModifier):
             if event.pos().x() < self.xsize/2:
                 if self.left_status != self.VACANT:
                     self.left_status = self.VACANT
-                    self.surface.painting_status = self.VACANT
+                    self.layer.painting_status = self.VACANT
                 else:
-                    self.left_status = self.surface.current_atom
-                    self.surface.painting_status = self.CURRENT_ATOM
+                    self.left_status = self.layer.current_atom
+                    self.layer.painting_status = self.CURRENT_ATOM
             else:
                 if self.right_status != self.VACANT:
                     self.right_status = self.VACANT
-                    self.surface.painting_status = self.VACANT
+                    self.layer.painting_status = self.VACANT
                 else:
-                    self.right_status = self.surface.current_atom
-                    self.surface.painting_status = self.CURRENT_ATOM
+                    self.right_status = self.layer.current_atom
+                    self.layer.painting_status = self.CURRENT_ATOM
             self.update()
         else:
             super(AtomPair, self).mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
         """Reset all the flags possibly set by other mouse events."""
-        self.surface.painting_status = None
+        self.layer.painting_status = None
 
     def mouseMoveEvent(self, event):
         """If were painting the hydrogen, try to set the state of the hydrogen
         under the mouse to the one given by the scene painting_status.
         """
-        if self.surface.painting_status is not None:
+        if self.layer != self.scene().current_layer:
+            event.ignore()
+            return
+        if self.layer.painting_status is not None:
             line = QtGui.QGraphicsLineItem(QtCore.QLineF(event.scenePos(), event.lastScenePos()),
-                                           self.scene().surface)
+                                           self.scene().current_layer)
             for item in line.collidingItems():
-                if isinstance(item, AtomPair) and not item.overwritten():
+                if (isinstance(item, AtomPair) and not item.overwritten() and
+                   item.layer == self.layer):
                     l_rect = QtCore.QRectF(-0.1, -0.1, AtomPair.XSIZE/2 + 0.2, AtomPair.YSIZE + 0.2)
                     r_rect = QtCore.QRectF(AtomPair.XSIZE/2 - 0.1, -0.1, AtomPair.XSIZE/2 + 0.2,
                                            AtomPair.YSIZE + 0.2)
                     left_rect = QtGui.QGraphicsRectItem(l_rect.translated(item.scenePos()))
                     right_rect = QtGui.QGraphicsRectItem(r_rect.translated(item.scenePos()))
                     if line.collidesWithItem(left_rect):
-                        if self.surface.painting_status == self.CURRENT_ATOM:
-                            item.left_status = self.surface.current_atom
+                        if self.layer.painting_status == self.CURRENT_ATOM:
+                            item.left_status = self.layer.current_atom
                         else:
                             item.left_status = self.VACANT
                     if line.collidesWithItem(right_rect):
-                        if self.surface.painting_status == self.CURRENT_ATOM:
-                            item.right_status = self.surface.current_atom
+                        if self.layer.painting_status == self.CURRENT_ATOM:
+                            item.right_status = self.layer.current_atom
                         else:
                             item.right_status = self.VACANT
                     item.update()
@@ -195,7 +239,7 @@ class SaveAtom(object):
         self.left_status = atom.left_status
         self.right_status = atom.right_status
 
-    def load(self, surface, parent=None):
-        atom = AtomPair(self.x, self.y, surface, parent)
+    def load(self, layer, parent=None):
+        atom = AtomPair(self.x, self.y, layer, parent)
         atom.left_status = self.left_status
         atom.right_status = self.right_status

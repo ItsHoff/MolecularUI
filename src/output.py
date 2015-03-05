@@ -10,6 +10,9 @@ TOTAL_SCALE = np.array((X_SCALE, Y_SCALE, Z_SCALE))
 X_OFFSET = np.array([7.68, 0, 0])
 Y_OFFSET = np.array([0, -3.84, 0])
 Z_OFFSET = np.array([0, 0, -5.171981])
+SURFACE_Z = np.array([0, 0, -1.406])
+SURFACE_LEFT = np.array([2.639680, -1.92, 0])
+SURFACE_RIGHT = np.array([5.039680, -1.92, 0])
 INITIAL_Z = np.array([0, 0, -2.50465])
 LAYER_Z = [np.array([0, 0, 0]),
           np.array([0, 0, -1.43264]),

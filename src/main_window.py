@@ -226,11 +226,6 @@ class MainWidget(QtGui.QWidget):
         status_bar.showMessage("Creating output... Done!", 2000)
         return save_file
 
-    def keyPressEvent(self, event):
-        """Send all key presses to the graphics scene."""
-        if self.graphics_view.underMouse():
-            self.graphics_scene.handleKeyPress(event)
-
 
 class SaveState(object):
     """Stores the global save state."""
