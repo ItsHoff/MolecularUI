@@ -211,7 +211,7 @@ class AtomPair(QtGui.QGraphicsItem):
                                            self.scene().current_layer)
             for item in line.collidingItems():
                 if (isinstance(item, AtomPair) and not item.overwritten() and
-                   item.layer == self.layer):
+                   item.layer == self.layer and item.onSurface()):
                     l_rect = QtCore.QRectF(-0.1, -0.1, AtomPair.XSIZE/2 + 0.2, AtomPair.YSIZE + 0.2)
                     r_rect = QtCore.QRectF(AtomPair.XSIZE/2 - 0.1, -0.1, AtomPair.XSIZE/2 + 0.2,
                                            AtomPair.YSIZE + 0.2)
