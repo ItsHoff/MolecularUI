@@ -22,7 +22,7 @@ class Surface(QtGui.QGraphicsItem):
         super(Surface, self).__init__(scene=scene)
         self.size = None
         self.corner = None
-        self.atom_types = ["H", "HE", "AU", "AU", "AU"]
+        self.atom_types = ["SI", "SI", "SI", "SI", "SI"]
         self.surface_atoms = {}
         self.selection_atoms = {}
         self.painting_status = None
@@ -37,6 +37,12 @@ class Surface(QtGui.QGraphicsItem):
         surface.populate()
         return surface
 
+    def matchSize(self, other):
+        """Match the size of other surface."""
+        self.size = other.size
+        self.corner = other.corner
+        self.populate()
+
     def addAtom(self, x, y):
         """Add a hydrogen pair on to the surface at (x,y)."""
         if (x, y) not in self.surface_atoms:
@@ -45,6 +51,7 @@ class Surface(QtGui.QGraphicsItem):
 
     def addDroppedItem(self, pos, dropped_item):
         """Add a item dropped in to the scene on to the surface."""
+        status_bar = self.scene().views()[0].window().statusBar()
         data_type = dropped_item.data(0, QtCore.Qt.UserRole)
         data = dropped_item.data(0, QtCore.Qt.UserRole + 1)
         if data_type == "BLOCK":
@@ -53,10 +60,13 @@ class Surface(QtGui.QGraphicsItem):
                             pos.y() - pos.y()%AtomPair.YSIZE)
             new_item.updateIndexing()
         elif data_type == "MOLECULE":
-            new_item = Molecule(pos.x(), pos.y(), data, self)
+            if self.scene().surface is self:
+                new_item = Molecule(pos.x(), pos.y(), data, self)
+            else:
+                status_bar.showMessage("Molecules can only be added to the surface.", 3000)
+                return
         if not new_item.resolveCollisions():
             self.scene().removeItem(new_item)
-            status_bar = self.scene().views()[0].window().statusBar()
             status_bar.showMessage("Item couldn't be added there.", 3000)
 
     def indexAtoms(self):

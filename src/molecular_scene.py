@@ -26,10 +26,10 @@ class MolecularScene(QtGui.QGraphicsScene):
         super(MolecularScene, self).__init__(parent)
         self.tree_widget = tree_widget
         self.surface = Surface.create(self)
+        self.surface.atom_types = ["H", "HE", "H", "H", "H"]
         self.layers = [self.surface]
-        for i in range(4):
+        for i in range(9):
             self.layers.append(Surface.create(self))
-            self.layers[i+1].atom_types[0] = "SI"
             self.layers[i+1].hide()
         self.current_layer_i = 0
         self.current_layer = self.layers[self.current_layer_i]
@@ -70,8 +70,12 @@ class MolecularScene(QtGui.QGraphicsScene):
         if layer_n < 0:
             raise ValueError("Tried to set invalid layer.")
         if layer_n >= len(self.layers):
-            return
+            for i in range(layer_n - len(self.layers) + 1):
+                layer = Surface.create(self)
+                layer.hide()
+                self.layers.append(layer)
         self.current_layer.hide()
+        self.layers[layer_n].matchSize(self.current_layer)
         self.current_layer_i = layer_n
         self.current_layer = self.layers[layer_n]
         self.current_layer.show()
@@ -80,6 +84,7 @@ class MolecularScene(QtGui.QGraphicsScene):
         """Get the output information from the scene."""
         result = []
         for layer in self.layers:
+            layer.matchSize(self.current_layer)
             layer.getOutput(result)
         return result
 
@@ -161,7 +166,7 @@ class MolecularScene(QtGui.QGraphicsScene):
         if event.source() is self.tree_widget:
             event.accept()
             dropped_item = event.source().currentItem()
-            self.surface.addDroppedItem(event.scenePos(), dropped_item)
+            self.current_layer.addDroppedItem(event.scenePos(), dropped_item)
             self.addToRecentlyUsed(dropped_item)
 
     def addToRecentlyUsed(self, tree_item):
@@ -188,7 +193,7 @@ class MolecularScene(QtGui.QGraphicsScene):
         elif (event.button() == QtCore.Qt.LeftButton and
               event.modifiers() == QtCore.Qt.ShiftModifier and
               not self.selectionAt(event.scenePos())):
-            self.selection_box = SelectionBox(event.scenePos(), self.surface)
+            self.selection_box = SelectionBox(event.scenePos(), self.current_layer)
         else:
             super(MolecularScene, self).mousePressEvent(event)
 
@@ -207,13 +212,9 @@ class MolecularScene(QtGui.QGraphicsScene):
         if self.selection_box is not None:
             self.views()[0].autoScroll(event.scenePos())
             self.selection_box.setCorner(event.scenePos())
-            selection_area = self.selection_box.selectionArea()
-            area = QtGui.QPainterPath()
-            area.addPolygon(selection_area)
-            self.setSelectionArea(area)
         elif self.drag_border is not None:
             self.views()[0].autoScroll(event.scenePos())
-            self.surface.resize(event.scenePos(), self.drag_border)
+            self.current_layer.resize(event.scenePos(), self.drag_border)
             self.updateMovingSceneRect()
         else:
             border = self.checkBorder(event.scenePos())

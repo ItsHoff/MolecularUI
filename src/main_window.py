@@ -208,10 +208,10 @@ class MainWidget(QtGui.QWidget):
     def createOutput(self):
         """Create a output file from the current state of the scene."""
         status_bar = self.window().statusBar()
-        status_bar.showMessage("Creating output...", 10000)
-        save_file = QtGui.QFileDialog.getSaveFileName(self, "Save output", "../output")
+        status_bar.showMessage("Creating output...")
+        save_file = QtGui.QFileDialog.getSaveFileName(self, "Save output", "../output", "*.xyz")
         if not save_file:
-            status_bar.showMessage("Creating output... Failed!", 2000)
+            status_bar.showMessage("Creating output... Aborted!", 2000)
             return
         result = self.graphics_scene.getOutput()
         if not save_file.endswith(".xyz"):
