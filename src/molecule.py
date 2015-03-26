@@ -140,7 +140,7 @@ class Molecule(QtGui.QGraphicsItem):
 
     def paint(self, painter, options, widget):
         """Draw the item if it is on the surface."""
-        if self.scene().paint_mode == molecular_scene.PAINT_SURFACE_ONLY:
+        if self.scene().draw_mode == molecular_scene.DRAW_SURFACE_ONLY:
             painter.setOpacity(0.5)
         if self.onSurface():
             painter.setBrush(QtGui.QColor(*self.variables.color))
@@ -155,7 +155,7 @@ class Molecule(QtGui.QGraphicsItem):
         the item. Rotate the item if middle button is pressed.
         """
         if (event.button() == QtCore.Qt.LeftButton and
-           self.scene().paint_mode != molecular_scene.PAINT_SURFACE_ONLY):
+           self.scene().draw_mode != molecular_scene.DRAW_SURFACE_ONLY):
             self.dragged = True
         else:
             super(Molecule, self).mousePressEvent(event)

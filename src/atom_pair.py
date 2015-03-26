@@ -24,7 +24,11 @@ class AtomPair(QtGui.QGraphicsItem):
                                2*SMALL_RADIUS, 2*SMALL_RADIUS)
     VACANT = "VACANT"
     CURRENT_ATOM = "CURRENT_ATOM"
-    NORMAL_BRUSH = QtGui.QBrush(QtGui.QColor(255, 0, 0))
+    BRUSHES = [QtGui.QBrush(QtGui.QColor(255, 0, 0)),
+               QtGui.QBrush(QtGui.QColor(255, 255, 0)),
+               QtGui.QBrush(QtGui.QColor(0, 255, 0)),
+               QtGui.QBrush(QtGui.QColor(0, 255, 255)),
+               QtGui.QBrush(QtGui.QColor(0, 0, 255))]
     VACANT_BRUSH = QtGui.QBrush(QtGui.QColor(43, 143, 141))
     PEN = QtGui.QPen(QtGui.QColor(0, 0, 0))
     PEN.setWidth(1)
@@ -161,13 +165,13 @@ class AtomPair(QtGui.QGraphicsItem):
             painter.setBrush(self.VACANT_BRUSH)
             painter.drawEllipse(self.LEFT_RECT)
         else:
-            painter.setBrush(self.NORMAL_BRUSH)
+            painter.setBrush(self.BRUSHES[self.left_status])
             painter.drawEllipse(self.LEFT_RECT)
         if self.right_status == self.VACANT:
             painter.setBrush(self.VACANT_BRUSH)
             painter.drawEllipse(self.RIGHT_RECT)
         else:
-            painter.setBrush(self.NORMAL_BRUSH)
+            painter.setBrush(self.BRUSHES[self.right_status])
             painter.drawEllipse(self.RIGHT_RECT)
 
     def mousePressEvent(self, event):
@@ -178,19 +182,19 @@ class AtomPair(QtGui.QGraphicsItem):
         if (event.button() == QtCore.Qt.LeftButton and
            event.modifiers() == QtCore.Qt.NoModifier):
             if event.pos().x() < self.xsize/2:
-                if self.left_status != self.VACANT:
-                    self.left_status = self.VACANT
-                    self.layer.painting_status = self.VACANT
-                else:
+                if self.left_status != self.layer.current_atom:
                     self.left_status = self.layer.current_atom
                     self.layer.painting_status = self.CURRENT_ATOM
-            else:
-                if self.right_status != self.VACANT:
-                    self.right_status = self.VACANT
-                    self.layer.painting_status = self.VACANT
                 else:
+                    self.left_status = self.VACANT
+                    self.layer.painting_status = self.VACANT
+            else:
+                if self.right_status != self.layer.current_atom:
                     self.right_status = self.layer.current_atom
                     self.layer.painting_status = self.CURRENT_ATOM
+                else:
+                    self.right_status = self.VACANT
+                    self.layer.painting_status = self.VACANT
             self.update()
         else:
             super(AtomPair, self).mousePressEvent(event)

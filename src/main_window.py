@@ -52,7 +52,8 @@ class MainWindow(QtGui.QMainWindow):
         file_menu.addAction(quit_action)
         self.menuBar().addMenu(file_menu)
 
-        self.setCentralWidget(MainWidget())
+        self.setCentralWidget(MainWidget(self))
+        self.centralWidget().graphics_view.paint_widget.updateLabels()
 
         self.show()
         self.statusBar().showMessage("Ready!", 2000)
@@ -113,8 +114,8 @@ class MainWidget(QtGui.QWidget):
     and menubars.
     """
 
-    def __init__(self):
-        super(MainWidget, self).__init__()
+    def __init__(self, parent):
+        super(MainWidget, self).__init__(parent)
         # Set up the left area of the UI
         left_area = QtGui.QVBoxLayout()
 
@@ -140,7 +141,7 @@ class MainWidget(QtGui.QWidget):
         self.loadItems(tree_widget)
 
         # Set up the graphics view for the machine and set the scene
-        self.graphics_view = MolecularView()
+        self.graphics_view = MolecularView(self)
         self.graphics_scene = MolecularScene(tree_widget, self.graphics_view)
         self.graphics_view.setScene(self.graphics_scene)
 

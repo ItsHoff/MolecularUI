@@ -1,6 +1,7 @@
 from PyQt4 import QtGui, QtCore
 
 import molecular_scene
+from paint_widget import PaintWidget
 
 SCROLL_DISTANCE = 50
 SCROLL_SPEED = 20
@@ -13,9 +14,9 @@ RIGHT = 3
 class MolecularView(QtGui.QGraphicsView):
     """Graphics view that is used to show the contents of the main scene."""
 
-    def __init__(self):
+    def __init__(self, parent):
         """Initialize the base class and set the default flags and parameters."""
-        super(MolecularView, self).__init__()
+        super(MolecularView, self).__init__(parent)
         self.setAcceptDrops(True)
         self.panning = False
         self.mouse_pos = None
@@ -24,6 +25,11 @@ class MolecularView(QtGui.QGraphicsView):
         self.max_factor = 2.5
         self.overlay = OverlayWidget(self)
         self.overlay.show()
+        self.paint_widget = PaintWidget(self)
+        layout = QtGui.QVBoxLayout()
+        layout.addWidget(self.paint_widget)
+        layout.setAlignment(QtCore.Qt.AlignBottom)
+        self.setLayout(layout)
 
         self.scroll_dir = set()
         self.scroll_timer = QtCore.QTimer(self)
@@ -74,11 +80,11 @@ class MolecularView(QtGui.QGraphicsView):
             if event.delta() < 0 and self.scene().current_layer_i > 0:
                 self.scene().setLayer(self.scene().current_layer_i - 1)
             elif (event.delta() < 0 and self.scene().current_layer_i == 0 and
-                  self.scene().paint_mode == molecular_scene.PAINT_SURFACE_ONLY):
-                self.scene().paint_mode = molecular_scene.PAINT_ALL
+                  self.scene().draw_mode == molecular_scene.DRAW_SURFACE_ONLY):
+                self.scene().draw_mode = molecular_scene.DRAW_ALL
             elif (event.delta() > 0 and self.scene().current_layer_i == 0 and
-                  self.scene().paint_mode == molecular_scene.PAINT_ALL):
-                self.scene().paint_mode = molecular_scene.PAINT_SURFACE_ONLY
+                  self.scene().draw_mode == molecular_scene.DRAW_ALL):
+                self.scene().draw_mode = molecular_scene.DRAW_SURFACE_ONLY
             elif event.delta() > 0:
                 self.scene().setLayer(self.scene().current_layer_i + 1)
             self.scene().update()
@@ -135,7 +141,7 @@ class OverlayWidget(QtGui.QWidget):
         qp.setPen(QtGui.QColor(0, 255, 0))
         qp.setFont(QtGui.QFont(QtGui.QFont().defaultFamily(), 20))
         scene = self.parent().scene()
-        if scene.current_layer_i == 0 and scene.paint_mode == molecular_scene.PAINT_ALL:
+        if scene.current_layer_i == 0 and scene.draw_mode == molecular_scene.DRAW_ALL:
             text = "T"
         elif scene.current_layer_i == 0:
             text = "S"

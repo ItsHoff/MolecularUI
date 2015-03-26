@@ -15,8 +15,8 @@ BOTTOMLB = 6
 LEFTB = 7
 TOPLB = 8
 
-PAINT_ALL = 1
-PAINT_SURFACE_ONLY = 2
+DRAW_ALL = 1
+DRAW_SURFACE_ONLY = 2
 
 
 class MolecularScene(QtGui.QGraphicsScene):
@@ -37,7 +37,7 @@ class MolecularScene(QtGui.QGraphicsScene):
         self.selection_box = None
         self.drag_border = None
         self.saved_selections = [None]*10
-        self.paint_mode = PAINT_ALL
+        self.draw_mode = DRAW_ALL
         self.updateSceneRect()
         self.update()
 
@@ -79,6 +79,7 @@ class MolecularScene(QtGui.QGraphicsScene):
         self.current_layer_i = layer_n
         self.current_layer = self.layers[layer_n]
         self.current_layer.show()
+        self.views()[0].paint_widget.updateLabels()
 
     def getOutput(self):
         """Get the output information from the scene."""
