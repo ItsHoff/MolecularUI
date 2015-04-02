@@ -6,35 +6,21 @@ import numpy as np
 from atom_pair import AtomPair
 import output
 import molecular_scene
-import molecule_info
+import settings
 
 class Molecule(QtGui.QGraphicsItem):
-
-    XSIZE = 3*AtomPair.XSIZE
-    YSIZE = 4*AtomPair.YSIZE
-    PATH = QtGui.QPainterPath()
-    PATH.setFillRule(QtCore.Qt.WindingFill)
-    tip_angle = math.degrees(math.atan(13.0/27 * YSIZE/XSIZE))
-    PATH.moveTo(4*XSIZE/13 + 20, 0)
-    PATH.arcTo(4*XSIZE/13 - 10, 0, 20, 20, 90, tip_angle)
-    PATH.arcTo(0, YSIZE/3 - 10, 20, 20, 90 + 2*tip_angle, 90 - 2*tip_angle)
-    PATH.arcTo(0, 2*YSIZE/3 - 10, 20, 20, 180, 90 - 2*tip_angle)
-    PATH.arcTo(4*XSIZE/13 - 10, YSIZE - 20, 20, 20, 270 - tip_angle, tip_angle)
-    PATH.arcTo(XSIZE - 20, YSIZE - 20, 20, 20, 270, 90)
-    PATH.arcTo(XSIZE - 20, 0, 20, 20, 0, 90)
-    PATH.closeSubpath()
 
     def __init__(self, x, y, variables, parent=None):
         super(Molecule, self).__init__(parent)
         self.variables = variables
-        if self.variables.special_shape is not None:
-            self.special_shape = molecule_info.shapes[self.variables.special_shape]
-        else:
-            self.special_shape = None
         self.setX(x - x % self.variables.snap[0])
         self.setY(y - y % self.variables.snap[1])
         self.xsize = self.variables.size[0]
         self.ysize = self.variables.size[1]
+        if self.variables.shape is not None:
+            self.shape = settings.getShape(self.variables.shape, self.xsize, self.ysize)
+        else:
+            self.shape = None
         self.dragged = False
         self.setZValue(3)
         self.translate(*self.variables.scene_translation)
@@ -133,8 +119,8 @@ class Molecule(QtGui.QGraphicsItem):
 
     def shape(self):
         """Return the shape of the item."""
-        if self.special_shape is not None:
-            return self.special_shape
+        if self.shape is not None:
+            return self.shape
         else:
             return super(Molecule, self).shape()
 
@@ -145,8 +131,8 @@ class Molecule(QtGui.QGraphicsItem):
         if self.onSurface():
             painter.setBrush(QtGui.QColor(*self.variables.color))
             painter.setPen(QtGui.QColor(0, 0, 0))
-            if self.special_shape is not None:
-                painter.drawPath(self.special_shape)
+            if self.shape is not None:
+                painter.drawPath(self.shape)
             else:
                 painter.drawRect(self.boundingRect())
 

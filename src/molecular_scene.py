@@ -5,6 +5,7 @@ from surface import Surface
 from atom_pair import AtomPair
 from contact import Contact
 from selection_box import SelectionBox
+import settings
 
 TOPB = 1
 TOPRB = 2
@@ -22,14 +23,14 @@ DRAW_SURFACE_ONLY = 2
 class MolecularScene(QtGui.QGraphicsScene):
     """Scene displaying the current state of the circuit."""
 
-    def __init__(self, tree_widget, parent=None):
+    def __init__(self, parent):
         super(MolecularScene, self).__init__(parent)
-        self.tree_widget = tree_widget
         self.surface = Surface.create(self)
-        self.surface.atom_types = ["H", "HE", "H", "H", "H"]
+        self.surface.atom_types = settings.surface_atom_types[:]
         self.layers = [self.surface]
-        for i in range(9):
+        for i in range(settings.number_of_layers):
             self.layers.append(Surface.create(self))
+            self.layers[i+1].atom_types = settings.substrate_atom_types[:]
             self.layers[i+1].hide()
         self.current_layer_i = 0
         self.current_layer = self.layers[self.current_layer_i]
@@ -69,9 +70,12 @@ class MolecularScene(QtGui.QGraphicsScene):
     def setLayer(self, layer_n):
         if layer_n < 0:
             raise ValueError("Tried to set invalid layer.")
+        if layer_n > settings.max_number_of_layers:
+            return
         if layer_n >= len(self.layers):
             for i in range(layer_n - len(self.layers) + 1):
                 layer = Surface.create(self)
+                layer.atom_types = settings.substrate_atom_types[:]
                 layer.hide()
                 self.layers.append(layer)
         self.current_layer.hide()
@@ -88,6 +92,9 @@ class MolecularScene(QtGui.QGraphicsScene):
             layer.matchSize(self.current_layer)
             layer.getOutput(result)
         return result
+
+    def getSaveState(self):
+        return SaveScene(self)
 
     def saveSelection(self, key):
         """Save current selection under key."""
@@ -125,7 +132,8 @@ class MolecularScene(QtGui.QGraphicsScene):
 
     def clearAll(self):
         """Remove everything from the scene."""
-        self.removeItem(self.surface)
+        for layer in self.layers:
+            self.removeItem(layer)
 
     def drawBackground(self, qp, rect):
         """Draw the background white and call a grid draw"""
@@ -164,7 +172,8 @@ class MolecularScene(QtGui.QGraphicsScene):
 
     def dropEvent(self, event):
         """Accept event and try to add the dropped item to the scene."""
-        if event.source() is self.tree_widget:
+        tree_widget = self.views()[0].window().centralWidget().tree_widget
+        if event.source() is tree_widget:
             event.accept()
             dropped_item = event.source().currentItem()
             self.current_layer.addDroppedItem(event.scenePos(), dropped_item)
@@ -174,7 +183,8 @@ class MolecularScene(QtGui.QGraphicsScene):
         """Add tree_item to the recently used tab if it's not allready
         added.
         """
-        recently = self.tree_widget.findItems("Recently Used",
+        tree_widget = self.views()[0].window().centralWidget().tree_widget
+        recently = tree_widget.findItems("Recently Used",
                                               QtCore.Qt.MatchExactly)[0]
         for i in range(recently.childCount()):
             if recently.child(i).text(0) == tree_item.text(0):
@@ -319,3 +329,23 @@ class MolecularScene(QtGui.QGraphicsScene):
         if 0 <= index <= 9 and self.peek_layer is not None:
             self.setLayer(self.peek_layer)
             self.peek_layer = None
+
+
+class SaveScene(object):
+
+    def __init__(self, scene):
+        self.layers = []
+        for layer in scene.layers:
+            self.layers.append(layer.getSaveState())
+
+    def load(self, view):
+        scene = MolecularScene(view)
+        loaded_layers = []
+        for layer in self.layers:
+            loaded_layers.append(layer.load(scene))
+        for layer in loaded_layers:
+            layer.hide()
+        scene.surface = loaded_layers[0]
+        scene.current_layer = scene.surface
+        scene.layers = loaded_layers
+        return scene

@@ -5,6 +5,7 @@ from atom_pair import AtomPair
 from molecule import Molecule
 import output
 import molecular_scene
+import settings
 
 TOPB = 1
 TOPRB = 2
@@ -22,7 +23,7 @@ class Surface(QtGui.QGraphicsItem):
         super(Surface, self).__init__(scene=scene)
         self.size = None
         self.corner = None
-        self.atom_types = ["SI", "SI", "SI", "SI", "SI"]
+        self.atom_types = settings.substrate_atom_types[:]
         self.surface_atoms = {}
         self.selection_atoms = {}
         self.painting_status = None
@@ -263,3 +264,4 @@ class SaveSurface(object):
         for child in self.child_items:
             child.load(surface)
         surface.indexAtoms()
+        return surface

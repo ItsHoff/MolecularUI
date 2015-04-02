@@ -11,7 +11,7 @@ from PyQt4 import QtGui, QtCore
 
 from molecular_view import MolecularView
 from molecular_scene import MolecularScene
-import molecule_info
+import settings
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -129,25 +129,25 @@ class MainWidget(QtGui.QWidget):
         button_grid.addWidget(create_button, 0, 0)
 
         # Set up the tree widget holding the circuits
-        tree_widget = QtGui.QTreeWidget(self)
-        tree_widget.setSizePolicy(QtGui.QSizePolicy.Minimum,
+        self.tree_widget = QtGui.QTreeWidget(self)
+        self.tree_widget.setSizePolicy(QtGui.QSizePolicy.Minimum,
                                   QtGui.QSizePolicy.Expanding)
-        tree_widget.setHeaderLabel("Items")
-        tree_widget.setDragEnabled(True)
-        tree_widget.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.tree_widget.setHeaderLabel("Items")
+        self.tree_widget.setDragEnabled(True)
+        self.tree_widget.setFocusPolicy(QtCore.Qt.NoFocus)
 
-        # Load the circuits from circuits.py into the tree_widget
+        # Load the molecules into the tree_widget
         self.top_items = None
-        self.loadItems(tree_widget)
+        self.loadItems(self.tree_widget)
 
         # Set up the graphics view for the machine and set the scene
         self.graphics_view = MolecularView(self)
-        self.graphics_scene = MolecularScene(tree_widget, self.graphics_view)
+        self.graphics_scene = MolecularScene(self.graphics_view)
         self.graphics_view.setScene(self.graphics_scene)
 
         # Add widgets to the corresponding layouts
         left_area.addLayout(button_grid)
-        left_area.addWidget(tree_widget)
+        left_area.addWidget(self.tree_widget)
         main_layout = QtGui.QHBoxLayout()
         main_layout.addLayout(left_area)
         main_layout.addWidget(self.graphics_view)
@@ -168,7 +168,7 @@ class MainWidget(QtGui.QWidget):
 
     def loadContacts(self):
         """Load contacts under the corresponding top item."""
-        for item in molecule_info.contacts:
+        for item in settings.contacts:
             sub_item = QtGui.QTreeWidgetItem(self.top_items["Contacts"])
             sub_item.setText(0, item.name)
             sub_item.setData(0, QtCore.Qt.UserRole, "MOLECULE")
@@ -176,7 +176,7 @@ class MainWidget(QtGui.QWidget):
 
     def loadMolecules(self):
         """Load molecules under the corresponding top item."""
-        for item in molecule_info.molecules:
+        for item in settings.molecules:
             sub_item = QtGui.QTreeWidgetItem(self.top_items["Molecules"])
             sub_item.setText(0, item.name)
             sub_item.setData(0, QtCore.Qt.UserRole, "MOLECULE")
@@ -232,22 +232,23 @@ class SaveState(object):
     """Stores the global save state."""
 
     def __init__(self):
-        self.surface = None
+        self.scene = None
 
     @classmethod
     def create(cls, main_window):
         """Gather all the data for saving without Qt bindings."""
         scene = main_window.centralWidget().graphics_scene
         save_state = cls()
-        save_state.surface = scene.surface.getSaveState()
+        save_state.scene = scene.getSaveState()
         return save_state
 
     def load(self, main_window):
         """Load the save state stored in this object."""
-        scene = main_window.centralWidget().graphics_scene
-        scene.clearAll()
-        self.surface.load(scene)
-        scene.updateSceneRect()
+        view = main_window.centralWidget().graphics_view
+        scene = self.scene.load(view)
+        view.setScene(scene)
+        main_window.centralWidget().graphics_scene = scene
+        scene.setLayer(0)
 
 
 def main():
