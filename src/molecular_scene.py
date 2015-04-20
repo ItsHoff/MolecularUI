@@ -184,8 +184,11 @@ class MolecularScene(QtGui.QGraphicsScene):
     def dropEvent(self, event):
         """Accept event and try to add the dropped item to the scene."""
         tree_widget = self.views()[0].window().centralWidget().tree_widget
-        if event.source() is tree_widget:
+        if event.dropAction() == QtCore.Qt.MoveAction:
+            event.ignore()
+        elif event.dropAction() == QtCore.Qt.CopyAction:
             event.accept()
+        if event.source() is tree_widget:
             dropped_item = event.source().currentItem()
             self.current_layer.addDroppedItem(event.scenePos(), dropped_item)
             self.addToRecentlyUsed(dropped_item)
