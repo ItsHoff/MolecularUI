@@ -149,14 +149,16 @@ class Molecule(QtGui.QGraphicsItem):
            event.modifiers() == QtCore.Qt.ShiftModifier and
            self.scene().draw_mode != molecular_scene.DRAW_SURFACE_ONLY):
             self.dragged = True
-        elif event.button() == QtCore.Qt.LeftButton:
+        elif (event.button() == QtCore.Qt.LeftButton and
+              self.scene().draw_mode != molecular_scene.DRAW_SURFACE_ONLY):
             pass
         else:
             super(Molecule, self).mousePressEvent(event)
 
     def mouseDoubleClickEvent(self, event):
         """Rotate the item on double click."""
-        if event.button() == QtCore.Qt.LeftButton and self.variables.rotating:
+        if (event.button() == QtCore.Qt.LeftButton and self.variables.rotating and
+           not self.scene().draw_mode != molecular_scene.DRAW_SURFACE_ONLY):
             self.setRotation(self.rotation() + 90)
             if not self.resolveCollisions():
                 status_bar = self.scene().views()[0].window().statusBar()
