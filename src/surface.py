@@ -33,7 +33,7 @@ class Surface(QtGui.QGraphicsItem):
     @classmethod
     def create(cls, scene):
         surface = cls(scene)
-        surface.size = QtCore.QSizeF(50 * AtomPair.XSIZE, 100 * AtomPair.YSIZE)
+        surface.size = QtCore.QSizeF(20 * AtomPair.XSIZE, 40 * AtomPair.YSIZE)
         surface.corner = QtCore.QPointF(-surface.size.width()/2, -surface.size.height()/2)
         surface.populate()
         return surface

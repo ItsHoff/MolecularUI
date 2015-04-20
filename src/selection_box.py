@@ -7,22 +7,23 @@ class SelectionBox(QtGui.QGraphicsItem):
     """Rubberband selection box."""
 
     def __init__(self, origin, parent=None, scene=None):
+        self.size = QtCore.QSizeF(origin.x() % AtomPair.XSIZE,
+                                  origin.y() % AtomPair.YSIZE)
         super(SelectionBox, self).__init__(parent, scene)
         self.setX(origin.x() - origin.x() % AtomPair.XSIZE)
         self.setY(origin.y() - origin.y() % AtomPair.YSIZE)
-        self.size = QtCore.QSizeF(origin.x() - self.pos().x(),
-                                  origin.y() - self.pos().y())
         self.indexed_rect = None
         self.setZValue(2)
 
     def setCorner(self, corner):
         """Set the corner to the new value. Signal the geometry change."""
-        self.prepareGeometryChange()
         if self.parentItem().contains(corner):
             old_size = self.size
+            self.prepareGeometryChange()
             self.size = QtCore.QSizeF(corner.x() - self.pos().x(),
                                       corner.y() - self.pos().y())
             if self.collidesWithSelections():
+                self.prepareGeometryChange()
                 self.size = old_size
 
     def selectionArea(self):
@@ -33,15 +34,19 @@ class SelectionBox(QtGui.QGraphicsItem):
         """Finalize the selection."""
         self.prepareGeometryChange()
         if self.width() < 0:
-            self.size.setWidth(abs(self.width()) + AtomPair.XSIZE - abs(self.width()) % AtomPair.XSIZE)
+            self.size.setWidth(abs(self.width() + 2) + AtomPair.XSIZE
+                               - abs(self.width() + 2) % AtomPair.XSIZE)
             self.moveBy(-self.width(), 0)
         else:
-            self.size.setWidth(self.width() - self.width() % AtomPair.XSIZE + AtomPair.XSIZE)
+            self.size.setWidth(self.width() - 2 + AtomPair.XSIZE
+                               - (self.width() - 2) % AtomPair.XSIZE)
         if self.height() < 0:
-            self.size.setHeight(abs(self.height()) + AtomPair.YSIZE - abs(self.height()) % AtomPair.YSIZE)
+            self.size.setHeight(abs(self.height() + 2) + AtomPair.YSIZE
+                                - abs(self.height() + 2) % AtomPair.YSIZE)
             self.moveBy(0, -self.height())
         else:
-            self.size.setHeight(self.height() - self.height() % AtomPair.YSIZE + AtomPair.YSIZE)
+            self.size.setHeight(self.height() - 2 + AtomPair.YSIZE
+                                - (self.height() - 2) % AtomPair.YSIZE)
         if self.height() == 0 or self.width() == 0:
             self.scene().removeItem(self)
             return
@@ -64,12 +69,13 @@ class SelectionBox(QtGui.QGraphicsItem):
 
     def updateIndexing(self):
         """Update the atom index of the surface."""
-        new_rect = self.mapRectToScene(self.boundingRect())
-        if new_rect != self.indexed_rect:
-            if self.indexed_rect is not None:
-                self.parentItem().removeFromIndex(self.indexed_rect)
-            self.parentItem().addToIndex(self)
-            self.indexed_rect = new_rect
+        if not self.collidesWithSelections():
+            new_rect = self.mapRectToScene(self.boundingRect())
+            if new_rect != self.indexed_rect:
+                if self.indexed_rect is not None:
+                    self.parentItem().removeFromIndex(self.indexed_rect)
+                self.parentItem().addToIndex(self)
+                self.indexed_rect = new_rect
 
     def findAtomAt(self, pos):
         """Return the hydrogen at the given position."""

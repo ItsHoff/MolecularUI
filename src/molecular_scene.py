@@ -35,7 +35,6 @@ class MolecularScene(QtGui.QGraphicsScene):
         self.peek_layer = None
         self.selection_box = None
         self.drag_border = None
-        self.saved_selections = [None]*10
         self.draw_mode = DRAW_ALL
         self.updateSceneRect()
         self.update()
@@ -106,10 +105,6 @@ class MolecularScene(QtGui.QGraphicsScene):
 
     def getSaveState(self):
         return SaveScene(self)
-
-    def saveSelection(self, key):
-        """Save current selection under key."""
-        self.saved_selections[key] = self.selectedItems()
 
     def addContextActions(self, menu):
         """Add widget specific context actions to the
@@ -301,8 +296,6 @@ class MolecularScene(QtGui.QGraphicsScene):
         self.drag_border = None
         self.updateSceneRect()
         if self.selection_box is not None:
-            if self.selection_box.boundingRect().isValid():
-                self.saveSelection(0)
             self.selection_box.finalize()
             self.selection_box = None
 
