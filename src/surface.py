@@ -56,10 +56,9 @@ class Surface(QtGui.QGraphicsItem):
         data_type = dropped_item.data(0, QtCore.Qt.UserRole)
         data = dropped_item.data(0, QtCore.Qt.UserRole + 1)
         if data_type == "BLOCK":
-            new_item = data.load(self)
+            new_item = data.insert(self)
             new_item.setPos(pos.x() - pos.x()%AtomPair.XSIZE,
                             pos.y() - pos.y()%AtomPair.YSIZE)
-            new_item.updateIndexing()
         elif data_type == "MOLECULE":
             if self.scene().surface is self:
                 new_item = Molecule(pos.x(), pos.y(), data, self)
@@ -69,6 +68,8 @@ class Surface(QtGui.QGraphicsItem):
         if not new_item.resolveCollisions():
             self.scene().removeItem(new_item)
             status_bar.showMessage("Item couldn't be added there.", 3000)
+        elif data_type == "BLOCK":
+            new_item.updateIndexing()
 
     def indexAtoms(self):
         """Add unindexed surface atoms to the index."""

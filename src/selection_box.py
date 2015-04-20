@@ -284,3 +284,10 @@ class SaveSelection(object):
             child.load(surface, selection)
         selection.updateIndexing()
         return selection
+
+    def insert(self, surface):
+        selection = SelectionBox(QtCore.QPointF(self.x, self.y), surface)
+        selection.size = QtCore.QSizeF(self.width, self.height)
+        for child in self.child_items:
+            child.load(surface, selection)
+        return selection
