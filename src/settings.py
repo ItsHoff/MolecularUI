@@ -10,7 +10,7 @@ import output
 
 number_of_layers = 5
 max_number_of_layers = 100
-surface_atom_types = ["H", "HE", "H", "H", "H"]
+surface_atom_types = ["H", "H", "H", "H", "H"]
 substrate_atom_types = ["SI", "SI", "SI", "SI", "SI"]
 
 

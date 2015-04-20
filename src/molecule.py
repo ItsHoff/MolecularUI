@@ -26,7 +26,7 @@ class Molecule(QtGui.QGraphicsItem):
         self.translate(*self.variables.scene_translation)
         self.setTransformOriginPoint(*self.variables.rotation_axis)
 
-    def getOutput(self, result):
+    def getOutput(self, result, options):
         """Add the output data of the contact in to the results if it is
         on the surface.
         """
@@ -42,20 +42,25 @@ class Molecule(QtGui.QGraphicsItem):
                 np.array((1.0*self.variables.rotation_axis[0]/AtomPair.XSIZE*output.X_SCALE,
                 1.0*self.variables.rotation_axis[1]/AtomPair.YSIZE*output.Y_SCALE, 0)))
             rotation_m = output.getCounterClockwiseRotationM(self.rotation())
-            with open("../structures/molecules/" + self.variables.output_file, "r") as f:
-                count = 0
-                f.seek(0)
-                for line in f:
-                    count += 1
-                    if count > 2:
-                        split = line.split()
-                        atom_pos = np.array([float(x) for x in split[1:4]])
-                        atom_pos -= rotation_axis
-                        atom_pos = np.dot(rotation_m, atom_pos)
-                        atom_pos += rotation_axis
-                        atom_pos += out_pos + translation
-                        result.append("%-4s %-10f %-10f %-10f %d" %
-                            ((split[0],) + tuple(atom_pos) + ((len(result) + 1),)))
+            try:
+                with open("../structures/molecules/" + self.variables.output_file, "r") as f:
+                    count = 0
+                    f.seek(0)
+                    for line in f:
+                        count += 1
+                        if count > 2:
+                            split = line.split()
+                            atom_pos = np.array([float(x) for x in split[1:4]])
+                            atom_pos -= rotation_axis
+                            atom_pos = np.dot(rotation_m, atom_pos)
+                            atom_pos += rotation_axis
+                            atom_pos += out_pos + translation
+                            result.append("%-4s %-10f %-10f %-10f %d" %
+                                ((split[0],) + tuple(atom_pos) + ((len(result) + 1),)))
+            except IOError as e:
+                print "IOError: Structure file '%s' not found for molecule '%s'." % \
+                        (self.variables.output_file, self.variables.name)
+                raise e
 
     def getSaveState(self):
         """Return the state of the item without Qt bindings."""
@@ -141,8 +146,11 @@ class Molecule(QtGui.QGraphicsItem):
         the item. Rotate the item if middle button is pressed.
         """
         if (event.button() == QtCore.Qt.LeftButton and
+           event.modifiers() == QtCore.Qt.ShiftModifier and
            self.scene().draw_mode != molecular_scene.DRAW_SURFACE_ONLY):
             self.dragged = True
+        elif event.button() == QtCore.Qt.LeftButton:
+            pass
         else:
             super(Molecule, self).mousePressEvent(event)
 

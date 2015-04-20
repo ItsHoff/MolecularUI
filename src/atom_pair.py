@@ -45,11 +45,17 @@ class AtomPair(QtGui.QGraphicsItem):
         self.left_status = 0
         self.layer = layer
 
-    def getOutput(self, result):
+    def getOutput(self, result, options):
         """Add the output information of the item in to the result."""
         if not self.onSurface() or self.overwritten():
             return
         layer_n = self.scene().layers.index(self.layer)
+
+        if layer_n == 0:
+            atom_types = options["surface_atom_types"]
+        else:
+            atom_types = options["substrate_atom_types"]
+
         if layer_n == 0:
             z_offset = np.array([0, 0, 0])
             left_offset = output.LEFT_H_POS * output.TOTAL_SCALE
@@ -67,15 +73,16 @@ class AtomPair(QtGui.QGraphicsItem):
                         + output.LAYER_Z[(layer_n+2) % 4])
             left_offset = output.LAYER_LEFT[(layer_n+2) % 4]
             right_offset = output.LAYER_RIGHT[(layer_n+2) % 4]
+
         pos = self.scenePos() - self.layer.corner
         out_pos = np.array((pos.x()/self.XSIZE * output.X_SCALE,
                   pos.y()/self.YSIZE * output.Y_SCALE, 0))
         if self.left_status != self.VACANT:
             left_pos = out_pos + z_offset + left_offset
             result.append("%-4s %-10f %-10f %-10f %d" %
-                    ((self.layer.atom_types[self.left_status],) +
+                    ((atom_types[self.left_status],) +
                      tuple(left_pos) + ((len(result) + 1),)))
-            if layer_n == len(self.scene().layers) - 1:
+            if layer_n == options["layers_to_draw"]:
                 result.append("%-4s %-10f %-10f %-10f %d" %
                     (("H",) + tuple(left_pos + output.LEFT_BOTTOM_H[layer_n%2])
                     + ((len(result) + 1),)))
@@ -85,9 +92,9 @@ class AtomPair(QtGui.QGraphicsItem):
         if self.right_status != self.VACANT:
             right_pos = out_pos + z_offset + right_offset
             result.append("%-4s %-10f %-10f %-10f %d" %
-                    ((self.layer.atom_types[self.right_status],) +
+                    ((atom_types[self.right_status],) +
                      tuple(right_pos) + ((len(result) + 1),)))
-            if layer_n == len(self.scene().layers) - 1:
+            if layer_n == options["layers_to_draw"]:
                 result.append("%-4s %-10f %-10f %-10f %d" %
                     (("H",) + tuple(right_pos + output.LEFT_BOTTOM_H[layer_n%2])
                         + ((len(result) + 1),)))

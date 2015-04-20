@@ -3,7 +3,7 @@ import numpy as np
 
 from surface import Surface
 from atom_pair import AtomPair
-from contact import Contact
+from molecule import Molecule
 from selection_box import SelectionBox
 import settings
 
@@ -27,11 +27,9 @@ class MolecularScene(QtGui.QGraphicsScene):
         super(MolecularScene, self).__init__(parent)
         self.surface = Surface.create(self)
         self.surface.atom_types = settings.surface_atom_types[:]
+        self.substrate_atom_types = settings.substrate_atom_types[:]
         self.layers = [self.surface]
-        for i in range(settings.number_of_layers):
-            self.layers.append(Surface.create(self))
-            self.layers[i+1].atom_types = settings.substrate_atom_types[:]
-            self.layers[i+1].hide()
+        self.addLayers(settings.number_of_layers)
         self.current_layer_i = 0
         self.current_layer = self.layers[self.current_layer_i]
         self.peek_layer = None
@@ -73,11 +71,7 @@ class MolecularScene(QtGui.QGraphicsScene):
         if layer_n > settings.max_number_of_layers:
             return
         if layer_n >= len(self.layers):
-            for i in range(layer_n - len(self.layers) + 1):
-                layer = Surface.create(self)
-                layer.atom_types = settings.substrate_atom_types[:]
-                layer.hide()
-                self.layers.append(layer)
+            self.addLayers(layer_n)
         self.current_layer.hide()
         self.layers[layer_n].matchSize(self.current_layer)
         self.current_layer_i = layer_n
@@ -85,12 +79,29 @@ class MolecularScene(QtGui.QGraphicsScene):
         self.current_layer.show()
         self.views()[0].paint_widget.updateLabels()
 
-    def getOutput(self):
+    def addLayers(self, final_n):
+        """Add layers until the number of layers equals final_n."""
+        if final_n > settings.max_number_of_layers:
+            return
+        if final_n >= len(self.layers):
+            for i in range(final_n - len(self.layers) + 1):
+                layer = Surface.create(self)
+                layer.atom_types = self.substrate_atom_types
+                layer.hide()
+                self.layers.append(layer)
+
+    def getOutput(self, options):
         """Get the output information from the scene."""
         result = []
-        for layer in self.layers:
+        if options["layers_to_draw"] > len(self.layers):
+            self.addLayers(options["layers_to_draw"])
+        self.surface.atom_types = options["surface_atom_types"]
+        for i, atom in enumerate(options["substrate_atom_types"]):
+            self.substrate_atom_types[i] = atom
+        for i in range(options["layers_to_draw"] + 1):
+            layer = self.layers[i]
             layer.matchSize(self.current_layer)
-            layer.getOutput(result)
+            layer.getOutput(result, options)
         return result
 
     def getSaveState(self):
@@ -199,10 +210,11 @@ class MolecularScene(QtGui.QGraphicsScene):
         if (event.button() == QtCore.Qt.LeftButton and
               not self.surface.contains(event.scenePos()) and
               not event.modifiers() & QtCore.Qt.ControlModifier and
-              not isinstance(self.itemAt(event.scenePos()), Contact)):
+              not isinstance(self.itemAt(event.scenePos()), Molecule)):
             self.drag_border = self.checkBorder(event.scenePos())
         elif (event.button() == QtCore.Qt.LeftButton and
               event.modifiers() == QtCore.Qt.ShiftModifier and
+              not isinstance(self.itemAt(event.scenePos()), Molecule) and
               not self.selectionAt(event.scenePos())):
             self.selection_box = SelectionBox(event.scenePos(), self.current_layer)
         else:
@@ -305,7 +317,7 @@ class MolecularScene(QtGui.QGraphicsScene):
         else:
             super(MolecularScene, self).contextMenuEvent(event)
 
-    def keyPressEvent(self, event):
+    def handleKeyPress(self, event):
         """Save the current selection with control + number and load the
         selection with the corresponding number.
         """
@@ -320,8 +332,11 @@ class MolecularScene(QtGui.QGraphicsScene):
             elif self.peek_layer is None:
                 self.peek_layer = self.current_layer_i
                 self.setLayer(index)
+            return True
+        else:
+            return False
 
-    def keyReleaseEvent(self, event):
+    def handleKeyRelease(self, event):
         if event.key() == QtCore.Qt.Key_section:
             index = 0
         else:
@@ -329,17 +344,22 @@ class MolecularScene(QtGui.QGraphicsScene):
         if 0 <= index <= 9 and self.peek_layer is not None:
             self.setLayer(self.peek_layer)
             self.peek_layer = None
+            return True
+        else:
+            return False
 
 
 class SaveScene(object):
 
     def __init__(self, scene):
         self.layers = []
+        self.substrate_atom_types = scene.substrate_atom_types
         for layer in scene.layers:
             self.layers.append(layer.getSaveState())
 
     def load(self, view):
         scene = MolecularScene(view)
+        scene.substrate_atom_types = self.substrate_atom_types
         loaded_layers = []
         for layer in self.layers:
             loaded_layers.append(layer.load(scene))

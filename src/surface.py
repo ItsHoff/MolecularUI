@@ -23,7 +23,7 @@ class Surface(QtGui.QGraphicsItem):
         super(Surface, self).__init__(scene=scene)
         self.size = None
         self.corner = None
-        self.atom_types = settings.substrate_atom_types[:]
+        self.atom_types = None
         self.surface_atoms = {}
         self.selection_atoms = {}
         self.painting_status = None
@@ -174,10 +174,10 @@ class Surface(QtGui.QGraphicsItem):
                     self.corner = old_rect.topLeft()
                     return False
 
-    def getOutput(self, result):
+    def getOutput(self, result, options):
         """Get the output information of the surface and its child items."""
         for item in self.childItems():
-            item.getOutput(result)
+            item.getOutput(result, options)
         return result
 
     def getSaveState(self):

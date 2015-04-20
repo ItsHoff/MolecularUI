@@ -33,15 +33,15 @@ class SelectionBox(QtGui.QGraphicsItem):
         """Finalize the selection."""
         self.prepareGeometryChange()
         if self.width() < 0:
-            self.size.setWidth(abs(self.width() + AtomPair.XSIZE - self.width() % AtomPair.XSIZE))
+            self.size.setWidth(abs(self.width()) + AtomPair.XSIZE - abs(self.width()) % AtomPair.XSIZE)
             self.moveBy(-self.width(), 0)
         else:
-            self.size.setWidth(self.width() - self.width() % AtomPair.XSIZE)
+            self.size.setWidth(self.width() - self.width() % AtomPair.XSIZE + AtomPair.XSIZE)
         if self.height() < 0:
-            self.size.setHeight(abs(self.height() + AtomPair.YSIZE - self.height() % AtomPair.YSIZE))
+            self.size.setHeight(abs(self.height()) + AtomPair.YSIZE - abs(self.height()) % AtomPair.YSIZE)
             self.moveBy(0, -self.height())
         else:
-            self.size.setHeight(self.height() - self.height() % AtomPair.YSIZE)
+            self.size.setHeight(self.height() - self.height() % AtomPair.YSIZE + AtomPair.YSIZE)
         if self.height() == 0 or self.width() == 0:
             self.scene().removeItem(self)
             return
@@ -124,9 +124,9 @@ class SelectionBox(QtGui.QGraphicsItem):
         self.parentItem().removeFromIndex(self.sceneBoundingRect())
         self.scene().removeItem(self)
 
-    def getOutput(self, result):
+    def getOutput(self, result, options):
         for item in self.childItems():
-            item.getOutput(result)
+            item.getOutput(result, options)
 
     def onSurface(self):
         """Check if the item is on the surface."""

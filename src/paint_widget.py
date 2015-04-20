@@ -26,6 +26,29 @@ class PaintWidget(QtGui.QWidget):
             if isinstance(item, PaintSelector):
                 item.updateLabel()
 
+    def handleKeyPress(self, event):
+        if event.key() == QtCore.Qt.Key_Q:
+            self.button_group.button(0).setChecked(True)
+            return True
+        elif event.key() == QtCore.Qt.Key_W:
+            self.button_group.button(1).setChecked(True)
+            return True
+        elif event.key() == QtCore.Qt.Key_E:
+            self.button_group.button(2).setChecked(True)
+            return True
+        elif event.key() == QtCore.Qt.Key_R:
+            self.button_group.button(3).setChecked(True)
+            return True
+        elif event.key() == QtCore.Qt.Key_T:
+            self.button_group.button(4).setChecked(True)
+            return True
+        else:
+            return False
+
+    def handleKeyRelease(self, event):
+        return False
+
+
 class PaintWidgetAction(QtGui.QWidgetAction):
     """Required to make tool_bar collapse properly."""
 
@@ -56,7 +79,7 @@ class PaintSelector(QtGui.QWidget):
         self.button.setCheckable(True)
         if index == 0:
             self.button.setChecked(True)
-        btn_grp.addButton(self.button)
+        btn_grp.addButton(self.button, index)
         self.label = QtGui.QLineEdit()
         self.label.setMinimumWidth(30)
         self.button.setMinimumWidth(30)
@@ -68,22 +91,22 @@ class PaintSelector(QtGui.QWidget):
         layout.addWidget(self.label)
         layout.setAlignment(self.button, QtCore.Qt.AlignCenter)
         self.setLayout(layout)
-        self.connect(self.label, QtCore.SIGNAL("editingFinished()"),
+        self.connect(self.label, QtCore.SIGNAL("textEdited(QString)"),
                      self.updateLayerAtomType)
-        self.connect(self.button, QtCore.SIGNAL("pressed()"), self.updateLayerPaintAtom)
+        self.connect(self.button, QtCore.SIGNAL("toggled(bool)"), self.updateLayerPaintAtom)
 
-    def updateLayerAtomType(self):
+    def updateLayerAtomType(self, text):
         current_layer = self.window().centralWidget().graphics_scene.current_layer
-        current_layer.atom_types[self.index] = self.label.text()
+        current_layer.atom_types[self.index] = text
 
     def updateLabel(self):
         self.label.setText(self.window().centralWidget().graphics_scene.current_layer
                            .atom_types[self.index])
 
-    def updateLayerPaintAtom(self):
-        current_layer = self.window().centralWidget().graphics_scene.current_layer
-        current_layer.current_atom = self.index
-
+    def updateLayerPaintAtom(self, checked):
+        if checked:
+            current_layer = self.window().centralWidget().graphics_scene.current_layer
+            current_layer.current_atom = self.index
 
     def paintEvent(self, event):
         p = QtGui.QPainter()

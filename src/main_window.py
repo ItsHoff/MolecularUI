@@ -11,6 +11,7 @@ from PyQt4 import QtGui, QtCore
 
 from molecular_view import MolecularView
 from molecular_scene import MolecularScene
+from output_dialog import OutputDialog
 import settings
 
 
@@ -35,11 +36,6 @@ class MainWindow(QtGui.QMainWindow):
         QtCore.QObject.connect(load_action, QtCore.SIGNAL("triggered()"),
                                self.load)
 
-        insert_action = QtGui.QAction("Insert", self)
-        insert_action.setShortcut(QtGui.QKeySequence("Ctrl+I"))
-        QtCore.QObject.connect(insert_action, QtCore.SIGNAL("triggered()"),
-                               self.insert)
-
         quit_action = QtGui.QAction("Quit", self)
         quit_action.setShortcut(QtGui.QKeySequence("Ctrl+Q"))
         QtCore.QObject.connect(quit_action, QtCore.SIGNAL("triggered()"),
@@ -47,7 +43,6 @@ class MainWindow(QtGui.QMainWindow):
 
         file_menu.addAction(save_action)
         file_menu.addAction(load_action)
-        file_menu.addAction(insert_action)
         file_menu.addSeparator()
         file_menu.addAction(quit_action)
         self.menuBar().addMenu(file_menu)
@@ -107,6 +102,22 @@ class MainWindow(QtGui.QMainWindow):
                 self.statusBar().showMessage("Inserting save state... Done!", 2000)
         else:
             self.statusBar().showMessage("Inserting save state... Failed!", 2000)
+
+    def keyPressEvent(self, event):
+        """Handle key presses globally."""
+        cw = self.centralWidget()
+        if cw.graphics_scene.handleKeyPress(event):
+            return
+        elif cw.graphics_view.paint_widget.handleKeyPress(event):
+            return
+
+    def keyReleaseEvent(self, event):
+        """Handle key releases globally."""
+        cw = self.centralWidget()
+        if cw.graphics_scene.handleKeyRelease(event):
+            return
+        elif cw.graphics_view.paint_widget.handleKeyRelease(event):
+            return
 
 
 class MainWidget(QtGui.QWidget):
@@ -210,11 +221,20 @@ class MainWidget(QtGui.QWidget):
         """Create a output file from the current state of the scene."""
         status_bar = self.window().statusBar()
         status_bar.showMessage("Creating output...")
+        output_dialog = OutputDialog(self)
+        if not output_dialog.showDialog():
+            status_bar.showMessage("Creating output... Cancelled!", 2000)
+            return
+        options = output_dialog.getOptions()
         save_file = QtGui.QFileDialog.getSaveFileName(self, "Save output", "../output", "*.xyz")
         if not save_file:
-            status_bar.showMessage("Creating output... Aborted!", 2000)
+            status_bar.showMessage("Creating output... Cancelled!", 2000)
             return
-        result = self.graphics_scene.getOutput()
+        try:
+            result = self.graphics_scene.getOutput(options)
+        except IOError:
+            status_bar.showMessage("Creating output... Failed!", 2000)
+            return
         if not save_file.endswith(".xyz"):
             save_file = save_file + ".xyz"
         # Write all the lines to the savefile
@@ -225,7 +245,7 @@ class MainWidget(QtGui.QWidget):
                 out.write(line)
                 out.write("\n")
         status_bar.showMessage("Creating output... Done!", 2000)
-        return save_file
+        self.graphics_view.paint_widget.updateLabels()
 
 
 class SaveState(object):
