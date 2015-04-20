@@ -178,12 +178,16 @@ class Molecule(QtGui.QGraphicsItem):
         """
         if self.dragged:
             old_pos = self.pos()
-            pos = event.scenePos()
-            pos.setX(pos.x() - pos.x() % self.variables.snap[0])
-            pos.setY(pos.y() - pos.y() % self.variables.snap[1])
-            self.setPos(pos)
+            new_pos = event.scenePos()
+            new_pos.setX(new_pos.x() - new_pos.x() % self.variables.snap[0])
+            new_pos.setY(new_pos.y() - new_pos.y() % self.variables.snap[1])
+            self.setPos(new_pos)
             if not self.onSurface() or self.collidesWithMolecules():
-                self.setPos(old_pos)
+                self.setPos(new_pos.x(), old_pos.y())
+                if not self.onSurface() or self.collidesWithMolecules():
+                    self.setPos(old_pos.x(), new_pos.y())
+                    if not self.onSurface() or self.collidesWithMolecules():
+                        self.setPos(old_pos)
             self.scene().updateMovingSceneRect()
             self.scene().views()[0].autoScroll(event.scenePos())
             self.scene().update()

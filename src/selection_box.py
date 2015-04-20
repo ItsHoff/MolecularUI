@@ -220,12 +220,16 @@ class SelectionBox(QtGui.QGraphicsItem):
         """
         if self.dragged:
             old_pos = self.pos()
-            pos = event.scenePos()
-            pos.setX(pos.x() - pos.x() % AtomPair.XSIZE)
-            pos.setY(pos.y() - pos.y() % AtomPair.YSIZE)
-            self.setPos(pos)
+            new_pos = event.scenePos()
+            new_pos.setX(new_pos.x() - new_pos.x() % AtomPair.XSIZE)
+            new_pos.setY(new_pos.y() - new_pos.y() % AtomPair.YSIZE)
+            self.setPos(new_pos)
             if not self.onSurface() or self.collidesWithSelections():
-                self.setPos(old_pos)
+                self.setPos(new_pos.x(), old_pos.y())
+                if not self.onSurface() or self.collidesWithSelections():
+                    self.setPos(old_pos.x(), new_pos.y())
+                    if not self.onSurface() or self.collidesWithSelections():
+                        self.setPos(old_pos)
             self.scene().updateMovingSceneRect()
             self.scene().views()[0].autoScroll(event.scenePos())
             self.update()
