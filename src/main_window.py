@@ -195,9 +195,7 @@ class MainWidget(QtGui.QWidget):
 
     def loadSurfaceBlocks(self):
         """Load surface blocks under the corresponding top item."""
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        path = current_dir + "/../blocks/"
-        files = os.listdir(path)
+        files = os.listdir("../blocks/")
         files.sort()
         for file_name in files:
             try:

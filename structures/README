@@ -1,3 +1,0 @@
-This is the base folder containing the atomic structures for creating output files.
-Add your own custom molecules under the molecules folder. 
-Base folder contains information about the surface structure and shouldn't be touched unless you know what you're doing.

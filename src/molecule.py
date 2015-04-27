@@ -43,7 +43,7 @@ class Molecule(QtGui.QGraphicsItem):
                 1.0*self.variables.rotation_axis[1]/AtomPair.YSIZE*output.Y_SCALE, 0)))
             rotation_m = output.getCounterClockwiseRotationM(self.rotation())
             try:
-                with open("../structures/molecules/" + self.variables.output_file, "r") as f:
+                with open("../molecules/" + self.variables.output_file, "r") as f:
                     count = 0
                     f.seek(0)
                     for line in f:
