@@ -29,6 +29,7 @@ class MolecularView(QtGui.QGraphicsView):
         layout = QtGui.QVBoxLayout()
         layout.addWidget(self.paint_widget)
         layout.setAlignment(QtCore.Qt.AlignBottom)
+        layout.setMargin(0)
         self.setLayout(layout)
 
         self.scroll_dir = set()

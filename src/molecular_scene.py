@@ -45,8 +45,8 @@ class MolecularScene(QtGui.QGraphicsScene):
         """
         rect = self.surface.sceneBoundingRect()
         center = rect.center()
-        rect.setHeight(rect.height() + 500)
-        rect.setWidth(rect.width() + 500)
+        rect.setHeight(rect.height() + 1500)
+        rect.setWidth(rect.width() + 1500)
         rect.moveCenter(center)
         return rect
 
