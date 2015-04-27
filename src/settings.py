@@ -10,6 +10,7 @@ import output
 
 number_of_layers = 5
 max_number_of_layers = 100
+layer_size = [45*AtomPair.XSIZE, 80*AtomPair.YSIZE]
 surface_atom_types = ["H", "H", "H", "H", "H"]
 substrate_atom_types = ["SI", "SI", "SI", "SI", "SI"]
 
@@ -35,13 +36,13 @@ contacts = [
 
 molecules = [
     MoleculeInfo(
-        name                =   "Test Molecule",
+        name                =   "Example Molecule",
         size                =   (AtomPair.XSIZE, AtomPair.YSIZE),
-        output_file         =   "test_molecule.xyz",
+        output_file         =   "example_molecule.xyz",
         color               =   (255, 0, 0),
         snap                =   (AtomPair.XSIZE, AtomPair.YSIZE),
         scene_translation   =   (0, 0),
-        output_translation  =   (0, 0, 0),
+        output_translation  =   (0, output.Y_SCALE, output.Z_SCALE),
         rotating            =   False,
         rotation_axis       =   (0, 0),
         shape               =   "Rounded Rectangle"
@@ -51,8 +52,8 @@ molecules = [
 # MOLECULE SHAPES
 def getShape(key, xsize, ysize):
     if key == "Contact":
-        contact_xsize = 3*AtomPair.XSIZE
-        contact_ysize = 4*AtomPair.YSIZE
+        contact_xsize = xsize
+        contact_ysize = ysize
         contact_path = QtGui.QPainterPath()
         contact_path.setFillRule(QtCore.Qt.WindingFill)
         tip_angle = math.degrees(math.atan(13.0/27 * contact_ysize/contact_xsize))
