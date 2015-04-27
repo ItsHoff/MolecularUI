@@ -1,0 +1,64 @@
+Using the UI
+------------
+
+Components
+==========
+The UI contains a few components the user should be aware of. The most visible part
+of the window the main view, which displays the current layer thats being edited.
+On the top left corner of the main view there's the layer indicator which shows the 
+number of the layer currently visible (or S/T for the surface). On the bottom of
+the main view is the atom selector which allows the selection of the currently active
+type and the editing of all the used atom types.
+
+On the left side of the window there is the item menu, which lists all the available
+items that can be added to the setup. On top of the menu there's the output button 
+which will trigger the output creation. In addition to those there is the statusbar 
+at the bottom of the window, which occasionaly displays some status and error messages, 
+and on top there's the menubar which contains some of the functions of the UI.
+
+
+Editing
+=======
+When you open the UI you should see the surface in the main view. You can zoom the 
+view by scrolling and move around the surface by holding down the middle mousebutton 
+or control and left mousebutton. The surface can be resized by dragging on its edges.
+You can change the layer being edited by holding down control and scrolling or 
+alternatively by pressing control + number key or §. Pressing number keys without 
+control will let you temporarily peek the corresponding layer, but letting go of 
+the key will return you back to the original layer. 
+
+Left clicking the atoms lets you change their state. If the current state is different
+from your currently selected atom the state will change to that atom, but if the 
+state allready matches the selected atom then the state will be changed to vacant.
+Keeping the left mouse button pressed lets you paint multiple atoms at once. When 
+painting multiple atoms all the atoms will be changed to the same state as the first
+atom you painted regardless of their current state. The text fields under the colored
+buttons let you change which color corresponds with wich atom. 
+
+You can add molecules and saved blocks to the layer by dragging the in to the view 
+from the item menu. These items can be moved around by shift clicking them. Double 
+click will rotate molecules that have rotations enabled. Keep in mind that molecules
+can only be added to the surface and can only be interacted with when on the Top
+mode. Top mode however won't let you interract with atoms under the molecules and for
+that reason there's also the Surface only mode which disables interaction with molecules
+but allows interraction with surface atoms.
+
+Shift dragging will also allow you to select blocks of atoms. Right clicking the 
+selection shows the context actions for the item. This allows you to fill all the 
+selected atoms with the current atom type or vacate all the selected atoms. Selection 
+also allows you to move the atoms by shift dragging. Deselecting the atoms will merge
+the block back to the surface. You can also save these selections which makes them 
+appear in the item menu under Surface Blocks. This way you can reuse and duplicate
+existing parts of the setup.
+
+
+Getting the output
+==================
+
+
+Additional features
+===================
+
+
+Available settings
+==================

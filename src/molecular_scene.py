@@ -110,8 +110,9 @@ class MolecularScene(QtGui.QGraphicsScene):
         """Add widget specific context actions to the
         context menu given as parameter.
         """
-        reset = QtGui.QAction("Reset", menu)
+        reset = QtGui.QAction("Reset the scene", menu)
         self.connect(reset, QtCore.SIGNAL("triggered()"), self.reset)
+        menu.addSeparator()
         menu.addAction(reset)
 
     def showMessageBox(self, title, text):

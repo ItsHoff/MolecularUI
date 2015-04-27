@@ -1,0 +1,53 @@
+Adding Molecules
+----------------
+
+To add your own molecules to be used with the UI first you need to have a .xyz file 
+defining the atomic structure of the molecule. Its recommended you copy the .xyz file
+to the molecules folder. Next you need to open the settings.py file and look for either
+the contacts or molecules list depending on where you want your new molecule grouped.
+Add a new MoleculeInfo object info to the list defining the properties of your new
+molecule and when you open the UI for the next time you should see the new molecule
+listed under contacts or molecules depending on which list you added it to and ready 
+to be used. 
+
+Here's an explanation of what you need to define in the MoleculeInfo object:
+
+    Mandatory fields
+    - name "str": The name shown on the items menu.
+    - size (int, int): The size of the molecule in the main view.
+    - output_file "str": The name of the .xyz file of the molecule or path to the file 
+        if it's in a different folder.
+
+    Optional fields
+    - color (int, int, int): The RBG value (0-255) used to paint the molecule. 
+        Default = (255, 255, 255)
+    - snap (int, int): Defines the grid spacing that the molecule snaps to. 
+        Default = (AtomPair.XSIZE, AtomPair.YSIZE)
+    - scene_translation (int, int): Defines the translation of the molecule on the 
+        main view. This doesn't affect the output positioning! Only useful if you 
+        don't want your molecule to be dragged from the top left corner.
+        Default = (0, 0)
+    - output_translation (float, float, float): Defines the translation of the 
+        molecule in the output. All the atoms in the output file are translated
+        by this amount in addition to the translation based on the molecule position
+        in the UI before it's written on the output file. Tweak this value if the 
+        output position of the molecule doesn't match the visual representation. 
+        Uses output coordinates!
+        Default = (0, 0, output.Z_SCALE)
+    - rotating bool: Defines whether the item can be rotated or not.
+        Default = (False)
+    - rotation_axis: Defines the rotational axis the item will be rotated around.
+        Defined in scene coordinates!
+        Default = (0, 0)
+    - shape "str": Defines the shape of the molecule on the main view. Possible 
+        values: "Contact", "Rectangle", "Ellipse", "Rounded Rectangle". If the value
+        doesn't match these values it will be painted as a rectangle. You can also 
+        define your own shapes in the getShape function. 
+        Default = (None)
+
+    Useful Constants:
+    - AtomPair.XSIZE, .YSIZE: Define the size of the base block of the layers in 
+        scene coordinates.
+    - output.X_SCALE, .Y_SCALE: Define the size of the base block of the layers in
+        output coordinates.
+    - output.Z_SCALE: Defines the base height of the molecules on the surface.
