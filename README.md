@@ -11,4 +11,4 @@ Requirements:
 
 - [PyQt4](http://www.riverbankcomputing.co.uk/software/pyqt/intro)
 
-Please feel free to post any issues and suggestions you might have to the issue tracker.
+**Please feel free to post any issues and suggestions you might have to the issue tracker.**
