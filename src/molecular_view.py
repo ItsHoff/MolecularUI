@@ -23,6 +23,7 @@ class MolecularView(QtGui.QGraphicsView):
         self.scale_factor = 1
         self.min_factor = 0.1
         self.max_factor = 2.5
+        self.wheel_counter = 0
         self.overlay = OverlayWidget(self)
         self.overlay.show()
         self.paint_widget = PaintWidget(self)
@@ -78,17 +79,20 @@ class MolecularView(QtGui.QGraphicsView):
     def wheelEvent(self, event):
         """Scale the view when wheel is scrolled."""
         if event.modifiers() == QtCore.Qt.ControlModifier:
-            if event.delta() < 0 and self.scene().current_layer_i > 0:
-                self.scene().setLayer(self.scene().current_layer_i - 1)
-            elif (event.delta() < 0 and self.scene().current_layer_i == 0 and
-                  self.scene().draw_mode == molecular_scene.DRAW_SURFACE_ONLY):
-                self.scene().draw_mode = molecular_scene.DRAW_ALL
-            elif (event.delta() > 0 and self.scene().current_layer_i == 0 and
-                  self.scene().draw_mode == molecular_scene.DRAW_ALL):
-                self.scene().draw_mode = molecular_scene.DRAW_SURFACE_ONLY
-            elif event.delta() > 0:
-                self.scene().setLayer(self.scene().current_layer_i + 1)
-            self.scene().update()
+            self.wheel_counter += event.delta()
+            if abs(self.wheel_counter) > 80:
+                self.wheel_counter = 0
+                if event.delta() < 0 and self.scene().current_layer_i > 0:
+                    self.scene().setLayer(self.scene().current_layer_i - 1)
+                elif (event.delta() < 0 and self.scene().current_layer_i == 0 and
+                    self.scene().draw_mode == molecular_scene.DRAW_SURFACE_ONLY):
+                    self.scene().draw_mode = molecular_scene.DRAW_ALL
+                elif (event.delta() > 0 and self.scene().current_layer_i == 0 and
+                    self.scene().draw_mode == molecular_scene.DRAW_ALL):
+                    self.scene().draw_mode = molecular_scene.DRAW_SURFACE_ONLY
+                elif event.delta() > 0:
+                    self.scene().setLayer(self.scene().current_layer_i + 1)
+                self.scene().update()
         else:
             self.setTransformationAnchor(self.AnchorUnderMouse)
             factor = 1 + 0.1* abs(event.delta()/120.0)

@@ -10,6 +10,7 @@ class OutputDialog(QtGui.QDialog):
     def __init__(self, parent):
         super(OutputDialog, self).__init__(parent)
         self.setModal(True)
+        self.setWindowTitle("Output Options")
         layout = QtGui.QGridLayout(self)
         layout.addWidget(QtGui.QLabel("Layers to output"), 0, 0)
         layout.addWidget(QtGui.QLineEdit(), 0, 1)
