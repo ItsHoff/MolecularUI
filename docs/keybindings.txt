@@ -1,0 +1,9 @@
+Keybindings
+-----------
+
+Save:   Ctrl-S
+Load:   Ctrl-L
+Peek a layer:   § or 0-9
+Select a layer: Ctrl-(§ or 0-9)
+Cycle layers:   Ctrl-Scroll
+Select a atom type: q, w, e, r, t

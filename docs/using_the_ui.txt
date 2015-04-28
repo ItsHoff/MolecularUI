@@ -54,11 +54,32 @@ existing parts of the setup.
 
 Getting the output
 ==================
+After you're satisfied with your setup you can get the output .xyz file by pressing 
+the "Create Output" button at the top left corner of the window. You will be first 
+shown the output options. You can select the number of layers you want to output in
+addition to the surface layer. In addition you can see the atom types currently in
+use and edit them before the output is created. After you are happy with the settings 
+you will be prompted to save the output. By default the output will be saved in the
+output folder but you can choose to save them elsewhere. After this you're free to 
+do what ever you wish with the output file.
 
 
-Additional features
-===================
+Saving
+======
+The UI includes a simple save and load functionality. You can save your setup by 
+selecting save from the menubar or by pressing Control+S. Similarily selecting load 
+from the menubar or pressing Control+L lets you load a previously saved setup.
 
 
 Available settings
 ==================
+The settings.py file allows you to set a few default values for the UI:
+    - number_of_layers: Sets the number of layers to be loaded initially.
+    - max_number_of_layers: Set the number maximum allowed layers. 
+    - layer_size: Sets the default size of the layers. Will be rounded down to the
+        nearest multiple of the base block size.
+    - surface/substrate_atom_types: Set the atom types used for the surface and 
+        substrate by default. 
+
+This file also allows you to define your own molecules. For details refer to 
+adding_molecules.txt.
