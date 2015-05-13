@@ -82,7 +82,7 @@ class AtomPair(QtGui.QGraphicsItem):
             result.append("%-4s %-10f %-10f %-10f %d" %
                     ((atom_types[self.left_status],) +
                      tuple(left_pos) + ((len(result) + 1),)))
-            if layer_n == options["layers_to_draw"]:
+            if layer_n != 0 and layer_n == options["layers_to_draw"]:
                 result.append("%-4s %-10f %-10f %-10f %d" %
                     (("H",) + tuple(left_pos + output.LEFT_BOTTOM_H[layer_n%2])
                     + ((len(result) + 1),)))
@@ -94,7 +94,7 @@ class AtomPair(QtGui.QGraphicsItem):
             result.append("%-4s %-10f %-10f %-10f %d" %
                     ((atom_types[self.right_status],) +
                      tuple(right_pos) + ((len(result) + 1),)))
-            if layer_n == options["layers_to_draw"]:
+            if layer_n != 0 and layer_n == options["layers_to_draw"]:
                 result.append("%-4s %-10f %-10f %-10f %d" %
                     (("H",) + tuple(right_pos + output.LEFT_BOTTOM_H[layer_n%2])
                         + ((len(result) + 1),)))
